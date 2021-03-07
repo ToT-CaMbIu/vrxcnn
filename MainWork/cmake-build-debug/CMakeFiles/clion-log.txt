@@ -1,0 +1,1 @@
+CMakeLists.txt not found in /Users/kirillgrigorev/UniversityWork/DiplomaProject/MainWork Select CMakeLists.txt
