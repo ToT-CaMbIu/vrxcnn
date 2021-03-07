@@ -66,6 +66,11 @@ void opencl_environment_definition(char* kernel_source) {
     program = clCreateProgramWithSource(context, 1, &cKernel_string, NULL, &clStatus);
 }
 
+void opencl_environment_clear() {
+    clStatus = clReleaseContext(context);
+    clStatus = clReleaseCommandQueue(command_queue);
+}
+
 void opencl_create_program_vector(char* kernel_source, char* kernel_name, float *A, float *B, float *C) {
     cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, sz * sizeof(float), NULL, &clStatus);
     cl_mem B_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, sz * sizeof(float), NULL, &clStatus);
@@ -110,7 +115,7 @@ void opencl_create_program_vector(char* kernel_source, char* kernel_name, float 
 }
 
 void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, float *C,
-                                int n, int m, int n1, int m1) {
+                                int n, int m, int n1, int m1)   {
     cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, n * m * sizeof(float), NULL, &clStatus);
     cl_mem Filter_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, n1 * m1 * sizeof(float), NULL, &clStatus);
     cl_mem C_clmem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, n * m * sizeof(float), NULL, &clStatus);
@@ -130,8 +135,8 @@ void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, floa
     clStatus = clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *) &Filter_clmem);
     clStatus = clSetKernelArg(kernel, 6, sizeof(cl_mem), (void *) &C_clmem);
 
-    size_t global_size[2] = {1024, 1024};
-    size_t local_size[2]  = {64, 64};
+    size_t global_size[2];
+    size_t local_size[2];
 
     local_size[0] = 16;
     local_size[1] = 16;
@@ -155,8 +160,50 @@ void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, floa
     clStatus = clReleaseMemObject(C_clmem);
 }
 
+void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n, int m) {
+    int n1 = n / 2;
+    int m1 = m / 2;
+
+    cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, n * m * sizeof(float), NULL, &clStatus);
+    cl_mem C_clmem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, n1 * m1 * sizeof(float), NULL, &clStatus);
+
+    clStatus = clEnqueueWriteBuffer(command_queue, A_clmem, CL_TRUE, 0, n * m * sizeof(float), A, 0, NULL, NULL);
+
+    clStatus = clBuildProgram(program, 1, device_list, NULL, NULL, NULL);
+
+    cl_kernel kernel = clCreateKernel(program, kernel_name, &clStatus);
+
+    clStatus = clSetKernelArg(kernel, 0, sizeof(int), (void *) &n);
+    clStatus = clSetKernelArg(kernel, 1, sizeof(int), (void *) &m);
+    clStatus = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *) &A_clmem);
+    clStatus = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *) &C_clmem);
+
+    size_t global_size[2];
+    size_t local_size[2];
+
+    global_size[0] = n;
+    global_size[1] = m;
+    local_size[0] = n1;
+    local_size[1] = m1;
+
+    clStatus = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
+    clStatus = clEnqueueReadBuffer(command_queue, C_clmem, CL_TRUE, 0, n1 * m1 * sizeof(float), C, 0, NULL, NULL);
+
+    clock_t t;
+    t = clock();
+    clStatus = clFlush(command_queue);
+    clStatus = clFinish(command_queue);
+    t = clock() - t;
+    time_taken += ((double)t)/CLOCKS_PER_SEC; // in seconds
+
+    clStatus = clReleaseKernel(kernel);
+    clStatus = clReleaseProgram(program);
+    clStatus = clReleaseMemObject(A_clmem);
+    clStatus = clReleaseMemObject(C_clmem);
+}
+
 void make_convolution() {
-    opencl_environment_definition("kernel.cl");
+    opencl_environment_definition("kernel_conv.cl");
 
     int n = 1000, m = 1000;
     int n1 = 3, m1 = 3;
@@ -167,21 +214,21 @@ void make_convolution() {
 
     for (size_t i = 0; i < n; i++) {
         for(size_t j = 0; j < m; ++j) {
-            A[i * m + j] = j;
-            C[i * m + j] = 0;
+            A[i * n + j] = j;
+            C[i * n + j] = 0;
         }
     }
 
     for (size_t i = 0; i < n1; i++) {
         for(size_t j = 0; j < m1; ++j) {
-            Filter[i * m1 + j] = 1;
+            Filter[i * n1 + j] = 1;
         }
     }
 
     opencl_create_program_conv("matrix_convolutional_transformation", A, Filter, C, n, m, n1, m1);
 
     bool isPassed = true;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; ++i) {
         for(int j = 0; j < m; ++j) {
             printf("%f ", C[i * n + j]);
 
@@ -192,7 +239,7 @@ void make_convolution() {
                 int y = j - 1;
                 for(int j1 = 0; j1 < m1; ++j1, ++y) {
                     if(x >= 0 && y >= 0 && x < n && y < m) {
-                        val += (Filter[i1 * m1 + j1] * A[x * m + y]);
+                        val += (Filter[i1 * n1 + j1] * A[x * n + y]);
                     }
                 }
             }
@@ -220,14 +267,53 @@ void make_convolution() {
     free(device_list);
 }
 
-void opencl_environment_clear() {
-    clStatus = clReleaseContext(context);
-    clStatus = clReleaseCommandQueue(command_queue);
+void make_max_pool() {
+    opencl_environment_definition("kernel_max_pool.cl");
+
+    int n = 4, m = 4;
+
+    n += (n & 1);
+    m += (m & 1);
+
+    float *A = (float *) malloc(sizeof(float) * n * m);
+    float *C = (float *) malloc(sizeof(float) * n / 2 * m / 2);
+
+    for (size_t i = 0; i < n; ++i) {
+        for(size_t j = 0; j < m; ++j) {
+            A[i * n + j] = j + 3;
+        }
+    }
+
+    opencl_create_program_max_pool("matrix_max_pool_transformation", A, C, n, m);
+
+    for (int i = 0; i < n; ++i) {
+        for(int j = 0; j < m; ++j) {
+            printf("%f ", A[i * n + j]);
+        }
+        printf("\n");
+    }
+
+    for (int i = 0; i < n / 2; ++i) {
+        for(int j = 0; j < m / 2; ++j) {
+            printf("%f ", C[i * n / 2 + j]);
+        }
+        printf("\n");
+    }
+
+
+    printf("kernels took %f seconds to execute \n", time_taken);
+
+    opencl_environment_clear();
+
+    free(A);
+    free(C);
+    free(platforms);
+    free(device_list);
 }
 
 int main (int argc, char **argv) {
 
-    make_convolution();
+    make_max_pool();
 
     return 0;
 }
