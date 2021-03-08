@@ -271,28 +271,30 @@ void make_max_pool() {
     opencl_environment_definition("kernel_max_pool.cl");
 
     int n = 6, m = 6;
+    int nc = n + (n & 1), mc = m + (m & 1);
 
-    n += (n & 1);
-    m += (m & 1);
+    int n1 = n / 2 + (n & 1);
+    int m1 = m / 2 + (m & 1);
 
-    int n1 = n / 2;
-    int m1 = m / 2;
-
-    float *A = (float *) malloc(sizeof(float) * n * m);
+    float *A = (float *) malloc(sizeof(float) * nc * mc);
     float *C = (float *) malloc(sizeof(float) * n1 * m1);
 
-    int t = 0;
-    for (size_t i = 0; i < n; ++i) {
-        for(size_t j = 0; j < m; ++j) {
-            A[i * n + j] = t++;
+    int t = 0, pos = 0;
+    for (size_t i = 0; i < nc; ++i) {
+        for(size_t j = 0; j < mc; ++j) {
+            if(i >= n || j >= m) {
+                A[pos++] = 0.0;
+                continue;
+            }
+            A[pos++] = t++;
         }
     }
 
-    opencl_create_program_max_pool("matrix_max_pool_transformation", A, C, n, m);
+    opencl_create_program_max_pool("matrix_max_pool_transformation", A, C, nc, mc);
 
-    for (int i = 0; i < n; ++i) {
-        for(int j = 0; j < m; ++j) {
-            printf("%f ", A[i * n + j]);
+    for (int i = 0; i < nc; ++i) {
+        for(int j = 0; j < mc; ++j) {
+            printf("%f ", A[i * nc + j]);
         }
         printf("\n");
     }
@@ -300,10 +302,19 @@ void make_max_pool() {
     bool isPassed = true;
     for (int i = 0; i < n1; ++i) {
         for(int j = 0; j < m1; ++j) {
-            float a1 = A[i * 2 * n + j * 2];
-            float a2 = A[i * 2 * n + j * 2 + 1];
-            float a3 = A[(i * 2 + 1)* n + j * 2];
-            float a4 = A[(i * 2 + 1) * n + (j * 2 + 1)];
+            float a1 = -1e9,a2 = -1e9,a3 = -1e9,a4 = -1e9;
+            if(i * 2 * nc + j * 2 < mc * nc) {
+                a1 = A[i * 2 * nc + j * 2];
+            }
+            if(i * 2 * nc + j * 2 + 1 < mc * nc) {
+                a2 = A[i * 2 * nc + j * 2 + 1];
+            }
+            if((i * 2 + 1)* nc + j * 2 < mc * nc) {
+                a3 = A[(i * 2 + 1) * nc + j * 2];
+            }
+            if((i * 2 + 1) * nc + (j * 2 + 1) < mc * nc) {
+                a4 = A[(i * 2 + 1) * nc + (j * 2 + 1)];
+            }
 
             a1 = fmax(a1, a2);
             a3 = fmax(a3, a4);
