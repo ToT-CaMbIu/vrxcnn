@@ -183,8 +183,8 @@ void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n
 
     global_size[0] = n;
     global_size[1] = m;
-    local_size[0] = n1;
-    local_size[1] = m1;
+    local_size[0] = 2;
+    local_size[1] = 2;
 
     clStatus = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
     clStatus = clEnqueueReadBuffer(command_queue, C_clmem, CL_TRUE, 0, n1 * m1 * sizeof(float), C, 0, NULL, NULL);
@@ -270,17 +270,21 @@ void make_convolution() {
 void make_max_pool() {
     opencl_environment_definition("kernel_max_pool.cl");
 
-    int n = 4, m = 4;
+    int n = 6, m = 6;
 
     n += (n & 1);
     m += (m & 1);
 
-    float *A = (float *) malloc(sizeof(float) * n * m);
-    float *C = (float *) malloc(sizeof(float) * n / 2 * m / 2);
+    int n1 = n / 2;
+    int m1 = m / 2;
 
+    float *A = (float *) malloc(sizeof(float) * n * m);
+    float *C = (float *) malloc(sizeof(float) * n1 * m1);
+
+    int t = 0;
     for (size_t i = 0; i < n; ++i) {
         for(size_t j = 0; j < m; ++j) {
-            A[i * n + j] = j + 3;
+            A[i * n + j] = t++;
         }
     }
 
@@ -293,15 +297,32 @@ void make_max_pool() {
         printf("\n");
     }
 
-    for (int i = 0; i < n / 2; ++i) {
-        for(int j = 0; j < m / 2; ++j) {
-            printf("%f ", C[i * n / 2 + j]);
+    bool isPassed = true;
+    for (int i = 0; i < n1; ++i) {
+        for(int j = 0; j < m1; ++j) {
+            float a1 = A[i * 2 * n + j * 2];
+            float a2 = A[i * 2 * n + j * 2 + 1];
+            float a3 = A[(i * 2 + 1)* n + j * 2];
+            float a4 = A[(i * 2 + 1) * n + (j * 2 + 1)];
+
+            a1 = fmax(a1, a2);
+            a3 = fmax(a3, a4);
+            a1 = fmax(a1, a3);
+
+            printf("%f ", C[i * n1 + j]);
+            isPassed &= C[i * n1 + j] == a1;
         }
         printf("\n");
     }
 
-
     printf("kernels took %f seconds to execute \n", time_taken);
+
+    if(isPassed) {
+        printf("Passed!\n");
+    }
+    else {
+        printf("Failed!\n");
+    }
 
     opencl_environment_clear();
 
