@@ -16,10 +16,10 @@ __kernel void matrix_convolutional_transformation(int n, int m, int n1, int m1,
         int col_shifted = col - m1 / 2;
         for(int j = 0; j < m1; ++j, ++col_shifted) {
             if(row_shifted >= 0 && col_shifted >= 0 && row_shifted < n && col_shifted < m) {
-                val += A[row_shifted * n + col_shifted] * Filter[i * n1 + j];
+                val += A[row_shifted * m + col_shifted] * Filter[i * m1 + j];
             }
         }
     }
 
-    C[row * n + col] = val;
+    C[row * m + col] = val;
 }$

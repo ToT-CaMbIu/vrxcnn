@@ -16,7 +16,6 @@
 #define KERNEL_NAME "kernel.cl"
 
 const int mx_size = 10000;
-int sz = 1021;
 double time_taken = 0.0;
 //OpenCl
 cl_platform_id *platforms;
@@ -71,6 +70,7 @@ void opencl_environment_clear() {
     clStatus = clReleaseCommandQueue(command_queue);
 }
 
+/*
 void opencl_create_program_vector(char* kernel_source, char* kernel_name, float *A, float *B, float *C) {
     cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, sz * sizeof(float), NULL, &clStatus);
     cl_mem B_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, sz * sizeof(float), NULL, &clStatus);
@@ -113,6 +113,7 @@ void opencl_create_program_vector(char* kernel_source, char* kernel_name, float 
 
     free(kernel_string);
 }
+*/
 
 void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, float *C,
                                 int n, int m, int n1, int m1)   {
@@ -138,10 +139,10 @@ void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, floa
     size_t global_size[2];
     size_t local_size[2];
 
-    local_size[0] = 16;
-    local_size[1] = 16;
-    global_size[0] = 1024;
-    global_size[1] = 1024;
+    local_size[0] = 10;
+    local_size[1] = 10;
+    global_size[0] = 10000;
+    global_size[1] = 10000;
 
     clStatus = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
     clStatus = clEnqueueReadBuffer(command_queue, C_clmem, CL_TRUE, 0, n * m * sizeof(float), C, 0, NULL, NULL);
@@ -205,7 +206,7 @@ void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n
 void make_convolution() {
     opencl_environment_definition("kernel_conv.cl");
 
-    int n = 1000, m = 1000;
+    int n = 854, m = 333;
     int n1 = 3, m1 = 3;
 
     float *A = (float *) malloc(sizeof(float) * n * m);
@@ -214,14 +215,14 @@ void make_convolution() {
 
     for (size_t i = 0; i < n; i++) {
         for(size_t j = 0; j < m; ++j) {
-            A[i * n + j] = j;
-            C[i * n + j] = 0;
+            A[i * m + j] = j;
+            C[i * m + j] = 0;
         }
     }
 
     for (size_t i = 0; i < n1; i++) {
         for(size_t j = 0; j < m1; ++j) {
-            Filter[i * n1 + j] = 1;
+            Filter[i * m1 + j] = rand() % 10;
         }
     }
 
@@ -230,7 +231,7 @@ void make_convolution() {
     bool isPassed = true;
     for (int i = 0; i < n; ++i) {
         for(int j = 0; j < m; ++j) {
-            printf("%f ", C[i * n + j]);
+            printf("%f ", C[i * m + j]);
 
             float val = 0;
             int x = i - 1;
@@ -239,12 +240,12 @@ void make_convolution() {
                 int y = j - 1;
                 for(int j1 = 0; j1 < m1; ++j1, ++y) {
                     if(x >= 0 && y >= 0 && x < n && y < m) {
-                        val += (Filter[i1 * n1 + j1] * A[x * n + y]);
+                        val += (Filter[i1 * m1 + j1] * A[x * m + y]);
                     }
                 }
             }
 
-            isPassed &= val == C[i * n + j];
+            isPassed &= val == C[i * m + j];
         }
         printf("\n");
     }
@@ -270,7 +271,7 @@ void make_convolution() {
 void make_max_pool() {
     opencl_environment_definition("kernel_max_pool.cl");
 
-    int n = 200, m = 2000;
+    int n = 4, m = 2;
     int nc = n + (n & 1), mc = m + (m & 1);
 
     int n1 = nc / 2;
@@ -279,7 +280,6 @@ void make_max_pool() {
     float *A = (float *) malloc(sizeof(float) * nc * mc);
     float *C = (float *) malloc(sizeof(float) * n1 * m1);
 
-    float t = 0.0;
     int pos = 0;
     for (int i = 0; i < nc; ++i) {
         for (int j = 0; j < mc; ++j) {
@@ -287,18 +287,18 @@ void make_max_pool() {
                 A[pos++] = 0.0;
                 continue;
             }
-            A[pos++] = t++;
+            A[pos++] = rand() % 10;
         }
     }
 
     opencl_create_program_max_pool("matrix_max_pool_transformation", A, C, nc, mc);
 
-    /*for (int i = 0; i < nc; ++i) {
+    for (int i = 0; i < nc; ++i) {
         for(int j = 0; j < mc; ++j) {
             printf("%f ", A[i * mc + j]);
         }
         printf("\n");
-    }*/
+    }
 
     bool isPassed = true;
     for (int i = 0; i < n1; ++i) {
@@ -321,10 +321,10 @@ void make_max_pool() {
             a3 = fmax(a3, a4);
             a1 = fmax(a1, a3);
 
-            //printf("%f ", C[i * m1 + j]);
+            printf("%f ", C[i * m1 + j]);
             isPassed &= C[i * m1 + j] == a1;
         }
-        //printf("\n");
+        printf("\n");
     }
 
     printf("kernels took %f seconds to execute \n", time_taken);
@@ -346,7 +346,7 @@ void make_max_pool() {
 
 int main (int argc, char **argv) {
 
-    make_max_pool();
+    make_convolution();
 
     return 0;
 }

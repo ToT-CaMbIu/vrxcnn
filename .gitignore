@@ -1,3 +1,7 @@
 PythonNeuro/
 vortexgpgpu/
+MainWork/main
+MainWork/.idea
+MainWork/.DS_Store
+MainWork/cmake-build-debug
 .DS_Store
