@@ -1,73 +1,47 @@
 #define CL_TARGET_OPENCL_VERSION 120
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <math.h>
-#ifdef __APPLE__
-#include <OpenCL/cl.h>
-#else
-#include <CL/cl.h>
-#endif
-#include <unistd.h>
-#include <string.h>
-#include <chrono>
-#include <time.h>
+#include "connected_libs.h"
+
+#include "utils.h"
 
 #define KERNEL_NAME "kernel.cl"
 
 const int mx_size = 10000;
 double time_taken = 0.0;
+double eps = 1e-7;
 //OpenCl
-cl_platform_id *platforms;
-cl_uint num_platforms;
-cl_int clStatus;
-cl_device_id *device_list;
-cl_uint num_devices;
-cl_context context;
-cl_command_queue command_queue;
-cl_program program;
+struct CLVars {
+    cl_platform_id *platforms;
+    cl_uint num_platforms;
+    cl_int clStatus;
+    cl_device_id *device_list;
+    cl_uint num_devices;
+    cl_context context;
+    cl_command_queue command_queue;
+    cl_program program;
+};
 //
 
-char* read_kernel_from_file(char* filename) {
-    FILE *fp = fopen(filename, "r");
-    char* kernel_string = (char *) malloc(sizeof(char) * mx_size);
-    if (!fp) {
-        fprintf(stderr, "Failed to load kernel.\n");
-        exit(1);
-    }
-
-    char ch;
-    int i = 0;
-    while ((ch = fgetc(fp)) != '$') {
-        kernel_string[i++] = ch;
-    }
-
-    fclose(fp);
-
-    printf("%s\n", kernel_string);
-
-    return kernel_string;
-}
+CLVars cl_vars;
 
 void opencl_environment_definition(char* kernel_source) {
-    cl_int clStatus = clGetPlatformIDs(0, NULL, &num_platforms);
-    platforms = (cl_platform_id *) malloc(sizeof(cl_platform_id) * num_platforms);
-    clStatus = clGetPlatformIDs(num_platforms, platforms, NULL);
-    clStatus = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
-    device_list = (cl_device_id *) malloc(sizeof(cl_device_id) * num_devices);
-    clStatus = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, num_devices, device_list, NULL);
-    context = clCreateContext(NULL, num_devices, device_list, NULL, NULL, &clStatus);
-    command_queue = clCreateCommandQueue(context, device_list[0], 0, &clStatus);
+    cl_int clStatus = clGetPlatformIDs(0, NULL, &cl_vars.num_platforms);
+    cl_vars.platforms = (cl_platform_id *) malloc(sizeof(cl_platform_id) * cl_vars.num_platforms);
+    clStatus = clGetPlatformIDs(cl_vars.num_platforms, cl_vars.platforms, NULL);
+    clStatus = clGetDeviceIDs(cl_vars.platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &cl_vars.num_devices);
+    cl_vars.device_list = (cl_device_id *) malloc(sizeof(cl_device_id) * cl_vars.num_devices);
+    clStatus = clGetDeviceIDs(cl_vars.platforms[0], CL_DEVICE_TYPE_GPU, cl_vars.num_devices, cl_vars.device_list, NULL);
+    cl_vars.context = clCreateContext(NULL, cl_vars.num_devices, cl_vars.device_list, NULL, NULL, &clStatus);
+    cl_vars.command_queue = clCreateCommandQueue(cl_vars.context, cl_vars.device_list[0], 0, &clStatus);
 
     char *kernel_string = read_kernel_from_file(kernel_source);
     const char* cKernel_string = kernel_string;
 
-    program = clCreateProgramWithSource(context, 1, &cKernel_string, NULL, &clStatus);
+    cl_vars.program = clCreateProgramWithSource(cl_vars.context, 1, &cKernel_string, NULL, &clStatus);
 }
 
 void opencl_environment_clear() {
-    clStatus = clReleaseContext(context);
-    clStatus = clReleaseCommandQueue(command_queue);
+    cl_vars.clStatus = clReleaseContext(cl_vars.context);
+    cl_vars.clStatus = clReleaseCommandQueue(cl_vars.command_queue);
 }
 
 /*
@@ -117,24 +91,29 @@ void opencl_create_program_vector(char* kernel_source, char* kernel_name, float 
 
 void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, float *C,
                                 int n, int m, int n1, int m1)   {
-    cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, n * m * sizeof(float), NULL, &clStatus);
-    cl_mem Filter_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, n1 * m1 * sizeof(float), NULL, &clStatus);
-    cl_mem C_clmem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, n * m * sizeof(float), NULL, &clStatus);
+    cl_mem A_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY, n * m * sizeof(float),
+                                    NULL, &cl_vars.clStatus);
+    cl_mem Filter_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY, n1 * m1 * sizeof(float),
+                                         NULL, &cl_vars.clStatus);
+    cl_mem C_clmem = clCreateBuffer(cl_vars.context, CL_MEM_WRITE_ONLY, n * m * sizeof(float), NULL,
+                                    &cl_vars.clStatus);
 
-    clStatus = clEnqueueWriteBuffer(command_queue, A_clmem, CL_TRUE, 0, n * m * sizeof(float), A, 0, NULL, NULL);
-    clStatus = clEnqueueWriteBuffer(command_queue, Filter_clmem, CL_TRUE, 0, n1 * m1 * sizeof(float), Filter, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueWriteBuffer(cl_vars.command_queue, A_clmem, CL_TRUE, 0,
+                                            n * m * sizeof(float), A, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueWriteBuffer(cl_vars.command_queue, Filter_clmem, CL_TRUE, 0,
+                                            n1 * m1 * sizeof(float), Filter, 0, NULL, NULL);
 
-    clStatus = clBuildProgram(program, 1, device_list, NULL, NULL, NULL);
+    cl_vars.clStatus = clBuildProgram(cl_vars.program, 1, cl_vars.device_list, NULL, NULL, NULL);
 
-    cl_kernel kernel = clCreateKernel(program, kernel_name, &clStatus);
+    cl_kernel kernel = clCreateKernel(cl_vars.program, kernel_name, &cl_vars.clStatus);
 
-    clStatus = clSetKernelArg(kernel, 0, sizeof(int), (void *) &n);
-    clStatus = clSetKernelArg(kernel, 1, sizeof(int), (void *) &m);
-    clStatus = clSetKernelArg(kernel, 2, sizeof(int), (void *) &n1);
-    clStatus = clSetKernelArg(kernel, 3, sizeof(int), (void *) &m1);
-    clStatus = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *) &A_clmem);
-    clStatus = clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *) &Filter_clmem);
-    clStatus = clSetKernelArg(kernel, 6, sizeof(cl_mem), (void *) &C_clmem);
+    cl_vars.clStatus = clSetKernelArg(kernel, 0, sizeof(int), (void *) &n);
+    cl_vars.clStatus = clSetKernelArg(kernel, 1, sizeof(int), (void *) &m);
+    cl_vars.clStatus = clSetKernelArg(kernel, 2, sizeof(int), (void *) &n1);
+    cl_vars.clStatus = clSetKernelArg(kernel, 3, sizeof(int), (void *) &m1);
+    cl_vars.clStatus = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *) &A_clmem);
+    cl_vars.clStatus = clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *) &Filter_clmem);
+    cl_vars.clStatus = clSetKernelArg(kernel, 6, sizeof(cl_mem), (void *) &C_clmem);
 
     size_t global_size[2];
     size_t local_size[2];
@@ -144,40 +123,45 @@ void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, floa
     global_size[0] = 10000;
     global_size[1] = 10000;
 
-    clStatus = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
-    clStatus = clEnqueueReadBuffer(command_queue, C_clmem, CL_TRUE, 0, n * m * sizeof(float), C, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueNDRangeKernel(cl_vars.command_queue, kernel, 2, NULL,
+                                              global_size, local_size, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
+                                           n * m * sizeof(float), C, 0, NULL, NULL);
 
     clock_t t;
     t = clock();
-    clStatus = clFlush(command_queue);
-    clStatus = clFinish(command_queue);
+    cl_vars.clStatus = clFlush(cl_vars.command_queue);
+    cl_vars.clStatus = clFinish(cl_vars.command_queue);
     t = clock() - t;
     time_taken += ((double)t)/CLOCKS_PER_SEC; // in seconds
 
-    clStatus = clReleaseKernel(kernel);
-    clStatus = clReleaseProgram(program);
-    clStatus = clReleaseMemObject(A_clmem);
-    clStatus = clReleaseMemObject(Filter_clmem);
-    clStatus = clReleaseMemObject(C_clmem);
+    cl_vars.clStatus = clReleaseKernel(kernel);
+    cl_vars.clStatus = clReleaseProgram(cl_vars.program);
+    cl_vars.clStatus = clReleaseMemObject(A_clmem);
+    cl_vars.clStatus = clReleaseMemObject(Filter_clmem);
+    cl_vars.clStatus = clReleaseMemObject(C_clmem);
 }
 
 void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n, int m) {
     int n1 = n / 2;
     int m1 = m / 2;
 
-    cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, n * m * sizeof(float), NULL, &clStatus);
-    cl_mem C_clmem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, n1 * m1 * sizeof(float), NULL, &clStatus);
+    cl_mem A_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY,
+                                    n * m * sizeof(float), NULL, &cl_vars.clStatus);
+    cl_mem C_clmem = clCreateBuffer(cl_vars.context, CL_MEM_WRITE_ONLY,
+                                    n1 * m1 * sizeof(float), NULL, &cl_vars.clStatus);
 
-    clStatus = clEnqueueWriteBuffer(command_queue, A_clmem, CL_TRUE, 0, n * m * sizeof(float), A, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueWriteBuffer(cl_vars.command_queue, A_clmem, CL_TRUE, 0,
+                                            n * m * sizeof(float), A, 0, NULL, NULL);
 
-    clStatus = clBuildProgram(program, 1, device_list, NULL, NULL, NULL);
+    cl_vars.clStatus = clBuildProgram(cl_vars.program, 1, cl_vars.device_list, NULL, NULL, NULL);
 
-    cl_kernel kernel = clCreateKernel(program, kernel_name, &clStatus);
+    cl_kernel kernel = clCreateKernel(cl_vars.program, kernel_name, &cl_vars.clStatus);
 
-    clStatus = clSetKernelArg(kernel, 0, sizeof(int), (void *) &n);
-    clStatus = clSetKernelArg(kernel, 1, sizeof(int), (void *) &m);
-    clStatus = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *) &A_clmem);
-    clStatus = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *) &C_clmem);
+    cl_vars.clStatus = clSetKernelArg(kernel, 0, sizeof(int), (void *) &n);
+    cl_vars.clStatus = clSetKernelArg(kernel, 1, sizeof(int), (void *) &m);
+    cl_vars.clStatus = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *) &A_clmem);
+    cl_vars.clStatus = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *) &C_clmem);
 
     size_t global_size[2];
     size_t local_size[2];
@@ -187,26 +171,28 @@ void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n
     local_size[0] = 2;
     local_size[1] = 2;
 
-    clStatus = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
-    clStatus = clEnqueueReadBuffer(command_queue, C_clmem, CL_TRUE, 0, n1 * m1 * sizeof(float), C, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueNDRangeKernel(cl_vars.command_queue, kernel, 2, NULL,
+                                              global_size, local_size, 0, NULL, NULL);
+    cl_vars.clStatus = clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
+                                           n1 * m1 * sizeof(float), C, 0, NULL, NULL);
 
     clock_t t;
     t = clock();
-    clStatus = clFlush(command_queue);
-    clStatus = clFinish(command_queue);
+    cl_vars.clStatus = clFlush(cl_vars.command_queue);
+    cl_vars.clStatus = clFinish(cl_vars.command_queue);
     t = clock() - t;
     time_taken += ((double)t)/CLOCKS_PER_SEC; // in seconds
 
-    clStatus = clReleaseKernel(kernel);
-    clStatus = clReleaseProgram(program);
-    clStatus = clReleaseMemObject(A_clmem);
-    clStatus = clReleaseMemObject(C_clmem);
+    cl_vars.clStatus = clReleaseKernel(kernel);
+    cl_vars.clStatus = clReleaseProgram(cl_vars.program);
+    cl_vars.clStatus = clReleaseMemObject(A_clmem);
+    cl_vars.clStatus = clReleaseMemObject(C_clmem);
 }
 
-void make_convolution() {
+float* make_convolution() {
     opencl_environment_definition("kernel_conv.cl");
 
-    int n = 854, m = 333;
+    int n = 5, m = 5;
     int n1 = 3, m1 = 3;
 
     float *A = (float *) malloc(sizeof(float) * n * m);
@@ -264,14 +250,16 @@ void make_convolution() {
     free(A);
     free(Filter);
     free(C);
-    free(platforms);
-    free(device_list);
+    free(cl_vars.platforms);
+    free(cl_vars.device_list);
+
+    return C;
 }
 
-void make_max_pool() {
+float* make_max_pool() {
     opencl_environment_definition("kernel_max_pool.cl");
 
-    int n = 4, m = 2;
+    int n = 200, m = 122;
     int nc = n + (n & 1), mc = m + (m & 1);
 
     int n1 = nc / 2;
@@ -340,13 +328,15 @@ void make_max_pool() {
 
     free(A);
     free(C);
-    free(platforms);
-    free(device_list);
+    free(cl_vars.platforms);
+    free(cl_vars.device_list);
+
+    return C;
 }
 
 int main (int argc, char **argv) {
 
-    make_convolution();
+    make_max_pool();
 
     return 0;
 }

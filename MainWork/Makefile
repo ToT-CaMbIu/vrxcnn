@@ -1,4 +1,6 @@
-exe_name += main
+exe_name = main
 
-all: main.cc
-	gcc -o $(exe_name) -std=c++11 main.cc -framework OpenCL
+SRCS = main.cc utils.cc
+
+all: $(SRCS)
+	gcc -o $(exe_name) -std=c++11 $^ -framework OpenCL

@@ -22,4 +22,4 @@ __kernel void matrix_convolutional_transformation(int n, int m, int n1, int m1,
     }
 
     C[row * m + col] = val;
-}$
+}

@@ -30,4 +30,4 @@ __kernel void matrix_max_pool_transformation(int n, int m,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     C[pos[0]] = mx;
-}$
+}
