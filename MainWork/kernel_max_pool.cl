@@ -1,4 +1,5 @@
-__kernel void matrix_max_pool_transformation(int n, int m,
+__kernel void matrix_max_pool_transformation(int n,
+                                             int m,
                                              const __global float* A,
                                              __global float* C) {
 

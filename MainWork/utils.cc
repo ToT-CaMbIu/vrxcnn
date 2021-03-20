@@ -5,7 +5,6 @@
 
 void store_image(float *imageOut,
                  const char *filename,
-                 int rows,
                  int cols,
                  const char* refFilename) {
 
@@ -54,20 +53,17 @@ void store_image(float *imageOut,
         exit(-1);
     }
 
-    // NOTE bmp formats store data in reverse raster order (see comment in
-    // readImage function), so we need to flip it upside down here.
     int mod = width % 4;
     if(mod != 0) {
         mod = 4 - mod;
     }
-    //   printf("mod = %d\n", mod);
+
     for(i = height-1; i >= 0; i--) {
         for(j = 0; j < width; j++) {
             tmp = (unsigned char)imageOut[i*cols+j];
             fwrite(&tmp, sizeof(char), 1, ofp);
         }
-        // In bmp format, rows must be a multiple of 4-bytes.
-        // So if we're not at a multiple of 4, add junk padding.
+
         for(j = 0; j < mod; j++) {
             fwrite(&tmp, sizeof(char), 1, ofp);
         }
@@ -224,4 +220,112 @@ void print_matrix(float *matrix,
         }
         printf("\n");
     }
+}
+
+bool test_convolution(int n, int m, int n1, int m1,
+                      float *A,
+                      float *Filter,
+                      float *C,
+                      float eps) {
+
+    bool isPassed = true;
+    for (int i = 0; i < n; ++i) {
+        for(int j = 0; j < m; ++j) {
+            //printf("%f ", C[i * m + j]);
+
+            float val = 0;
+            int x = i - n1 / 2;
+
+            for(int i1 = 0; i1 < n1; ++i1, ++x) {
+                int y = j - m1 / 2;
+                for(int j1 = 0; j1 < m1; ++j1, ++y) {
+                    if(x >= 0 && y >= 0 && x < n && y < m) {
+                        val += (Filter[i1 * m1 + j1] * A[x * m + y]);
+                    }
+                }
+            }
+
+            isPassed &= float_compare(val, C[i * m + j], eps);
+        }
+        //printf("\n");
+    }
+
+    if(isPassed) {
+        printf("Passed!\n");
+    }
+    else {
+        printf("Failed!\n");
+    }
+
+    return isPassed;
+}
+
+bool test_max_pool(int nc, int mc, int n1, int m1,
+                   float *A,
+                   float *C,
+                   float eps) {
+
+    bool isPassed = true;
+    for (int i = 0; i < n1; ++i) {
+        for(int j = 0; j < m1; ++j) {
+            float a1 = -1e9,a2 = -1e9,a3 = -1e9,a4 = -1e9;
+            if(i * 2 * mc + j * 2 < mc * nc) {
+                a1 = A[i * 2 * mc + j * 2];
+            }
+            if(i * 2 * mc + j * 2 + 1 < mc * nc) {
+                a2 = A[i * 2 * mc + j * 2 + 1];
+            }
+            if((i * 2 + 1) * mc + j * 2 < mc * nc) {
+                a3 = A[(i * 2 + 1) * mc + j * 2];
+            }
+            if((i * 2 + 1) * mc + (j * 2 + 1) < mc * nc) {
+                a4 = A[(i * 2 + 1) * mc + (j * 2 + 1)];
+            }
+
+            a1 = fmax(a1, a2);
+            a3 = fmax(a3, a4);
+            a1 = fmax(a1, a3);
+
+            //printf("%f ", C[i * m1 + j]);
+            isPassed &= float_compare(C[i * m1 + j], a1, eps);
+        }
+        //printf("\n");
+    }
+
+    if(isPassed) {
+        printf("Passed!\n");
+    }
+    else {
+        printf("Failed!\n");
+    }
+
+    return isPassed;
+}
+
+bool test_matrix_mul(int n, int m, int k,
+                     float *A,
+                     float *B,
+                     float *C,
+                     float eps) {
+    bool isPassed = true;
+    for(int i = 0; i < n; ++i) {
+        for(int j = 0; j < m; ++j) {
+            float val = 0.0f;
+            for(int p = 0; p < k; ++p) {
+                val += A[i * k + p] * B[p * m + j];
+            }
+            printf("%f ", val);
+            isPassed &= float_compare(val, C[i * m + j], eps);
+        }
+        printf("\n");
+    }
+
+    if(isPassed) {
+        printf("Passed!\n");
+    }
+    else {
+        printf("Failed!\n");
+    }
+
+    return isPassed;
 }

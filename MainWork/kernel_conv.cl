@@ -9,7 +9,7 @@ __kernel void matrix_convolutional_transformation(int n, int m, int n1, int m1,
         return;
     }
 
-    float val = 0.0;
+    float val = 0.0f;
     int row_shifted = row - n1 / 2;
 
     for(int i = 0; i < n1; ++i, ++row_shifted) {

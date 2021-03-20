@@ -3,8 +3,6 @@
 
 #include "utils.h"
 
-#define KERNEL_NAME "kernel.cl"
-
 const int mx_size = 10000;
 double time_taken = 0.0;
 double eps = 1e-7;
@@ -18,6 +16,7 @@ struct CLVars {
     cl_context context;
     cl_command_queue command_queue;
     cl_program program;
+    char *kernel_string;
 };
 //
 
@@ -33,8 +32,10 @@ void opencl_environment_definition(char* kernel_source) {
     cl_vars.context = clCreateContext(NULL, cl_vars.num_devices, cl_vars.device_list, NULL, NULL, &clStatus);
     cl_vars.command_queue = clCreateCommandQueue(cl_vars.context, cl_vars.device_list[0], 0, &clStatus);
 
-    char *kernel_string = read_kernel_from_file(kernel_source);
-    const char* cKernel_string = kernel_string;
+    if(cl_vars.kernel_string == nullptr) {
+        cl_vars.kernel_string = read_kernel_from_file(kernel_source);
+    }
+    const char* cKernel_string = cl_vars.kernel_string;
 
     cl_vars.program = clCreateProgramWithSource(cl_vars.context, 1, &cKernel_string, NULL, &clStatus);
 }
@@ -44,52 +45,10 @@ void opencl_environment_clear() {
     cl_vars.clStatus = clReleaseCommandQueue(cl_vars.command_queue);
 }
 
-/*
-void opencl_create_program_vector(char* kernel_source, char* kernel_name, float *A, float *B, float *C) {
-    cl_mem A_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, sz * sizeof(float), NULL, &clStatus);
-    cl_mem B_clmem = clCreateBuffer(context, CL_MEM_READ_ONLY, sz * sizeof(float), NULL, &clStatus);
-    cl_mem C_clmem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sz * sizeof(float), NULL, &clStatus);
-
-    clStatus = clEnqueueWriteBuffer(command_queue, A_clmem, CL_TRUE, 0, sz * sizeof(float), A, 0, NULL, NULL);
-    clStatus = clEnqueueWriteBuffer(command_queue, B_clmem, CL_TRUE, 0, sz * sizeof(float), B, 0, NULL, NULL);
-
-    char *kernel_string = read_kernel_from_file(kernel_source);
-    const char* cKernel_string = kernel_string;
-
-    cl_program program = clCreateProgramWithSource(context, 1, &cKernel_string, NULL, &clStatus);
-
-    clStatus = clBuildProgram(program, 1, device_list, NULL, NULL, NULL);
-
-    cl_kernel kernel = clCreateKernel(program, kernel_name, &clStatus);
-
-    clStatus = clSetKernelArg(kernel, 0, sizeof(int), (void *) &sz);
-    clStatus = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *) &A_clmem);
-    clStatus = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *) &B_clmem);
-    clStatus = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *) &C_clmem);
-
-    size_t global_size = 1024;
-    size_t local_size = 16;
-    clStatus = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_size, &local_size, 0, NULL, NULL);
-    clStatus = clEnqueueReadBuffer(command_queue, C_clmem, CL_TRUE, 0, sz * sizeof(float), C, 0, NULL, NULL);
-
-    clock_t t;
-    t = clock();
-    clStatus = clFlush(command_queue);
-    clStatus = clFinish(command_queue);
-    t = clock() - t;
-    time_taken += ((double)t)/CLOCKS_PER_SEC; // in seconds
-
-    clStatus = clReleaseKernel(kernel);
-    clStatus = clReleaseProgram(program);
-    clStatus = clReleaseMemObject(A_clmem);
-    clStatus = clReleaseMemObject(B_clmem);
-    clStatus = clReleaseMemObject(C_clmem);
-
-    free(kernel_string);
-}
-*/
-
-void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, float *C,
+void opencl_create_program_conv(char* kernel_name,
+                                float *A,
+                                float *Filter,
+                                float *C,
                                 int n, int m, int n1, int m1)   {
     cl_mem A_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY, n * m * sizeof(float),
                                     NULL, &cl_vars.clStatus);
@@ -119,14 +78,15 @@ void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, floa
     global_size[0] = n;
     global_size[1] = m;
 
+    clock_t t;
+    t = clock();
+
     cl_vars.clStatus &= clEnqueueNDRangeKernel(cl_vars.command_queue, kernel, 2, NULL,
                                               global_size, NULL, 0, NULL, NULL);
 
     cl_vars.clStatus &= clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
                                            n * m * sizeof(float), C, 0, NULL, NULL);
 
-    clock_t t;
-    t = clock();
     cl_vars.clStatus &= clFlush(cl_vars.command_queue);
     cl_vars.clStatus &= clFinish(cl_vars.command_queue);
     t = clock() - t;
@@ -139,7 +99,10 @@ void opencl_create_program_conv(char* kernel_name, float *A, float *Filter, floa
     cl_vars.clStatus &= clReleaseMemObject(C_clmem);
 }
 
-void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n, int m) {
+void opencl_create_program_max_pool(char* kernel_name,
+                                    float *A,
+                                    float *C,
+                                    int n, int m) {
     int n1 = n / 2;
     int m1 = m / 2;
 
@@ -168,13 +131,14 @@ void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n
     local_size[0] = 2;
     local_size[1] = 2;
 
+    clock_t t;
+    t = clock();
+
     cl_vars.clStatus &= clEnqueueNDRangeKernel(cl_vars.command_queue, kernel, 2, NULL,
                                               global_size, local_size, 0, NULL, NULL);
     cl_vars.clStatus &= clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
                                            n1 * m1 * sizeof(float), C, 0, NULL, NULL);
 
-    clock_t t;
-    t = clock();
     cl_vars.clStatus &= clFlush(cl_vars.command_queue);
     cl_vars.clStatus &= clFinish(cl_vars.command_queue);
     t = clock() - t;
@@ -186,69 +150,118 @@ void opencl_create_program_max_pool(char* kernel_name, float *A, float *C, int n
     cl_vars.clStatus &= clReleaseMemObject(C_clmem);
 }
 
-float* make_convolution() {
-    opencl_environment_definition("kernel_conv.cl");
+void opencl_create_program_matrix_mul(char* kernel_name,
+                                    float *A,
+                                    float *B,
+                                    float *C,
+                                    int n, int m, int k) {
+    cl_mem A_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY,
+                                    n * k * sizeof(float), NULL, &cl_vars.clStatus);
+    cl_mem B_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY,
+                                    k * m * sizeof(float), NULL, &cl_vars.clStatus);
+    cl_mem C_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_WRITE,
+                                    n * m * sizeof(float), NULL, &cl_vars.clStatus);
 
-    int n = 1333, m = 1111;
-    int n1 = 7, m1 = 7;
+    cl_vars.clStatus &= clEnqueueWriteBuffer(cl_vars.command_queue, A_clmem, CL_TRUE, 0,
+                                             n * k * sizeof(float), A, 0, NULL, NULL);
 
-    float *A = (float *) malloc(sizeof(float) * n * m);
-    float *Filter = (float *) malloc(sizeof(float) * n1 * m1);
+    cl_vars.clStatus &= clEnqueueWriteBuffer(cl_vars.command_queue, B_clmem, CL_TRUE, 0,
+                                             k * m * sizeof(float), B, 0, NULL, NULL);
+
+    cl_vars.clStatus &= clBuildProgram(cl_vars.program, 1, cl_vars.device_list, NULL, NULL, NULL);
+
+    cl_kernel kernel = clCreateKernel(cl_vars.program, kernel_name, &cl_vars.clStatus);
+
+    int TS = k / 2;
+
+    cl_vars.clStatus &= clSetKernelArg(kernel, 0, sizeof(int), (void *) &n);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 1, sizeof(int), (void *) &m);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 2, sizeof(int), (void *) &k);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 3, sizeof(int), (void *) &TS);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *) &A_clmem);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *) &B_clmem);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 6, sizeof(cl_mem), (void *) &C_clmem);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 7, TS * TS * sizeof(float), NULL);
+    cl_vars.clStatus &= clSetKernelArg(kernel, 8, TS * TS * sizeof(float), NULL);
+
+    size_t global_size[2];
+    size_t local_size[2];
+
+    global_size[0] = n;
+    global_size[1] = m;
+    local_size[0] = TS;
+    local_size[1] = TS;
+
+    cl_event event = NULL;
+
+    clock_t t;
+    t = clock();
+
+    cl_vars.clStatus &= clEnqueueNDRangeKernel(cl_vars.command_queue, kernel, 2, NULL,
+                                               global_size, local_size, 0, NULL, &event);
+
+    cl_vars.clStatus &= clWaitForEvents(1, &event);
+
+    cl_vars.clStatus &= clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
+                                            n * m * sizeof(float), C, 0, NULL, NULL);
+
+    cl_vars.clStatus &= clFlush(cl_vars.command_queue);
+    cl_vars.clStatus &= clFinish(cl_vars.command_queue);
+
+    t = clock() - t;
+    time_taken += ((double)t)/CLOCKS_PER_SEC; // in seconds
+
+    cl_vars.clStatus &= clReleaseKernel(kernel);
+    cl_vars.clStatus &= clReleaseProgram(cl_vars.program);
+    cl_vars.clStatus &= clReleaseMemObject(A_clmem);
+    cl_vars.clStatus &= clReleaseMemObject(B_clmem);
+    cl_vars.clStatus &= clReleaseMemObject(C_clmem);
+}
+
+float* make_matrix_mul() {
+    opencl_environment_definition("kernel_matrix_mul.cl");
+
+    int n = 2, m = 2, k = 3;
+
+    float *A = (float *) malloc(sizeof(float) * n * k);
+    float *B = (float *) malloc(sizeof(float) * k * m);
     float *C = (float *) malloc(sizeof(float) * n * m);
 
     for (size_t i = 0; i < n; i++) {
+        for(size_t j = 0; j < k; ++j) {
+            A[i * k + j] = 1.0 + rand() % 3;
+        }
+    }
+
+    for (size_t i = 0; i < k; i++) {
         for(size_t j = 0; j < m; ++j) {
-            A[i * m + j] = j;
-            C[i * m + j] = 0;
+            B[i * m + j] = 1.0 + rand() % 3;
         }
     }
 
-    for (size_t i = 0; i < n1; i++) {
-        for(size_t j = 0; j < m1; ++j) {
-            Filter[i * m1 + j] = rand() % 3 + 1.0 / (1.0 + rand() % 3);
+    for (size_t i = 0; i < n; i++) {
+        for(size_t j = 0; j < m; ++j) {
+            C[i * m + j] = 0.0;
         }
     }
 
-    print_matrix(A, n, m);
-    print_matrix(Filter, n1, m1);
+    print_matrix(A, n, k);
+    print_matrix(B, k, m);
 
-    opencl_create_program_conv("matrix_convolutional_transformation", A, Filter, C, n, m, n1, m1);
+    opencl_create_program_matrix_mul("matrix_mul", A, B, C, n, m, k);
 
-    bool isPassed = true;
-    for (int i = 0; i < n; ++i) {
-        for(int j = 0; j < m; ++j) {
-            printf("%f ", C[i * m + j]);
+    test_matrix_mul(n, m, k, A, B, C);
 
-            float val = 0;
-            int x = i - n1 / 2;
-
-            for(int i1 = 0; i1 < n1; ++i1, ++x) {
-                int y = j - m1 / 2;
-                for(int j1 = 0; j1 < m1; ++j1, ++y) {
-                    if(x >= 0 && y >= 0 && x < n && y < m) {
-                        val += (Filter[i1 * m1 + j1] * A[x * m + y]);
-                    }
-                }
-            }
-
-            isPassed &= float_compare(val, C[i * m + j], eps);
-        }
-        printf("\n");
-    }
+    print_matrix(C, n, m);
 
     printf("kernels took %f seconds to execute \n", time_taken);
 
-    if(isPassed) {
-        printf("Passed!\n");
-    }
-    else {
-        printf("Failed!\n");
-    }
+    time_taken = 0.0f;
 
     opencl_environment_clear();
 
     free(A);
-    free(Filter);
+    free(B);
     free(C);
     free(cl_vars.platforms);
     free(cl_vars.device_list);
@@ -259,7 +272,7 @@ float* make_convolution() {
 float* make_max_pool() {
     opencl_environment_definition("kernel_max_pool.cl");
 
-    int n = 1000, m = 1800;
+    int n = 133, m = 1833;
     int nc = n + (n & 1), mc = m + (m & 1);
 
     int n1 = nc / 2;
@@ -281,48 +294,11 @@ float* make_max_pool() {
 
     opencl_create_program_max_pool("matrix_max_pool_transformation", A, C, nc, mc);
 
-    for (int i = 0; i < nc; ++i) {
-        for(int j = 0; j < mc; ++j) {
-            printf("%f ", A[i * mc + j]);
-        }
-        printf("\n");
-    }
-
-    bool isPassed = true;
-    for (int i = 0; i < n1; ++i) {
-        for(int j = 0; j < m1; ++j) {
-            float a1 = -1e9,a2 = -1e9,a3 = -1e9,a4 = -1e9;
-            if(i * 2 * mc + j * 2 < mc * nc) {
-                a1 = A[i * 2 * mc + j * 2];
-            }
-            if(i * 2 * mc + j * 2 + 1 < mc * nc) {
-                a2 = A[i * 2 * mc + j * 2 + 1];
-            }
-            if((i * 2 + 1)* mc + j * 2 < mc * nc) {
-                a3 = A[(i * 2 + 1) * mc + j * 2];
-            }
-            if((i * 2 + 1) * mc + (j * 2 + 1) < mc * nc) {
-                a4 = A[(i * 2 + 1) * mc + (j * 2 + 1)];
-            }
-
-            a1 = fmax(a1, a2);
-            a3 = fmax(a3, a4);
-            a1 = fmax(a1, a3);
-
-            printf("%f ", C[i * m1 + j]);
-            isPassed &= float_compare(C[i * m1 + j], a1, eps);
-        }
-        printf("\n");
-    }
+    test_max_pool(nc, mc, n1, m1, A, C);
 
     printf("kernels took %f seconds to execute \n", time_taken);
 
-    if(isPassed) {
-        printf("Passed!\n");
-    }
-    else {
-        printf("Failed!\n");
-    }
+    time_taken = 0.0f;
 
     opencl_environment_clear();
 
@@ -336,7 +312,9 @@ float* make_max_pool() {
 
 int main (int argc, char **argv) {
 
-    make_convolution();
+    srand(time(nullptr));
+
+    make_matrix_mul();
 
     return 0;
 }
