@@ -208,3 +208,20 @@ char* read_kernel_from_file(char* kernelPath) {
 
     return source;
 }
+
+bool float_compare(float lhs,
+                   float rhs,
+                   float eps) {
+    return fabs(lhs - rhs) <= eps;
+}
+
+void print_matrix(float *matrix,
+                  int n,
+                  int m) {
+    for(int i = 0; i < n; ++i) {
+        for(int j = 0; j < m; ++j) {
+            printf("%f ", matrix[i * m + j]);
+        }
+        printf("\n");
+    }
+}
