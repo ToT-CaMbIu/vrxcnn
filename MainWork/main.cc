@@ -357,7 +357,7 @@ int main (int argc, char **argv) {
     srand(time(nullptr));
     
     for(int i = 0; i < 100; ++i)
-        make_max_pool();
+        make_matrix_mul();
 
     return 0;
 }

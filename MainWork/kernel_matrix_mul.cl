@@ -1,4 +1,4 @@
-__kernel void matrix_mul(const int M,
+/*__kernel void matrix_mul(const int M,
                          const int N,
                          const int K,
                          const int TS,
@@ -33,9 +33,8 @@ __kernel void matrix_mul(const int M,
     }
 
     C[globalRow * N + globalCol] = acc;
-}
+}*/
 
-/*
 __kernel void matrix_mul(const int M,
                          const int N,
                          const int K,
@@ -56,4 +55,3 @@ __kernel void matrix_mul(const int M,
 
     C[globalRow*N + globalCol] = acc;
 }
- */
