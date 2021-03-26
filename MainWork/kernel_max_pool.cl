@@ -11,16 +11,19 @@ __kernel void matrix_max_pool_transformation(int n,
     if(globalRow >= n || globalCol >= m) {
         return;
     }
-
+    
+    const int tx = globalRow / 2;
+    const int ty = globalCol / 2;
+    const int align = m / 2;
+    
     __local float val[4];
-    __local int pos[4];
 
     val[localRow * 2 + localCol] = A[globalRow * m + globalCol];
-    pos[localRow * 2 + localCol] = (globalRow * m / 4) + (globalCol / 2);
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    float mx = val[0];
+    __local float mx;
+    mx = val[0];
 
     for(int i = 1; i < 4; ++i) {
         if(val[i] > mx) {
@@ -28,7 +31,6 @@ __kernel void matrix_max_pool_transformation(int n,
         }
     }
 
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    C[pos[0]] = mx;
+    C[tx * align + ty] = mx;
 }
+

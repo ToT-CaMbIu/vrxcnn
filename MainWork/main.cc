@@ -269,10 +269,48 @@ float* make_matrix_mul() {
     return C;
 }
 
+float* make_convolution() {
+     opencl_environment_definition("kernel_conv.cl");
+
+     int n = 1000, m = 1000;
+     int n1 = 3, m1 = 3;
+
+     float *A = (float *) malloc(sizeof(float) * n * m);
+     float *Filter = (float *) malloc(sizeof(float) * n1 * m1);
+     float *C = (float *) malloc(sizeof(float) * n * m);
+
+     for (size_t i = 0; i < n; i++) {
+         for(size_t j = 0; j < m; ++j) {
+             A[i * m + j] = j;
+             C[i * m + j] = 0;
+         }
+     }
+
+     for (size_t i = 0; i < n1; i++) {
+         for(size_t j = 0; j < m1; ++j) {
+             Filter[i * m1 + j] = 1;
+         }
+     }
+
+     opencl_create_program_conv("matrix_convolutional_transformation", A, Filter, C, n, m, n1, m1);
+
+     test_convolution(n, m, n1, m1, A, Filter, C);
+
+     printf("kernels took %f seconds to execute \n", time_taken);
+
+     opencl_environment_clear();
+
+     free(A);
+     free(Filter);
+     free(C);
+ }
+
 float* make_max_pool() {
     opencl_environment_definition("kernel_max_pool.cl");
 
-    int n = 133, m = 1833;
+    int n = rand() % 9997 + 3, m = rand() % 9997 + 3;
+    printf("n = %d, m = %d\n", n, m);
+    
     int nc = n + (n & 1), mc = m + (m & 1);
 
     int n1 = nc / 2;
@@ -291,8 +329,12 @@ float* make_max_pool() {
             A[pos++] = rand() % 3 + 1.0 / (1.0 + rand() % 3);
         }
     }
+    
+    //print_matrix(A, mc, nc);
 
     opencl_create_program_max_pool("matrix_max_pool_transformation", A, C, nc, mc);
+    
+    //print_matrix(C, m1, n1);
 
     test_max_pool(nc, mc, n1, m1, A, C);
 
@@ -313,8 +355,9 @@ float* make_max_pool() {
 int main (int argc, char **argv) {
 
     srand(time(nullptr));
-
-    make_matrix_mul();
+    
+    for(int i = 0; i < 100; ++i)
+        make_max_pool();
 
     return 0;
 }
