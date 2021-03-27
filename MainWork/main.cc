@@ -2,6 +2,7 @@
 #include "connected_libs.h"
 
 #include "utils.h"
+#include "hdf5.h"
 
 const int mx_size = 10000;
 double time_taken = 0.0;
