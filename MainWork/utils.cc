@@ -162,7 +162,7 @@ float* read_image(const char *filename,
     return floatImage;
 }
 
-char* read_kernel_from_file(char* kernelPath) {
+char* read_kernel_from_file(const char* kernelPath) {
 
     FILE *fp;
     char *source;
@@ -231,7 +231,6 @@ bool test_convolution(int n, int m, int n1, int m1,
     bool isPassed = true;
     for (int i = 0; i < n; ++i) {
         for(int j = 0; j < m; ++j) {
-            //printf("%f ", C[i * m + j]);
 
             float val = 0;
             int x = i - n1 / 2;
@@ -247,7 +246,6 @@ bool test_convolution(int n, int m, int n1, int m1,
 
             isPassed &= float_compare(val, C[i * m + j], eps);
         }
-        //printf("\n");
     }
 
     if(isPassed) {
@@ -286,10 +284,8 @@ bool test_max_pool(int nc, int mc, int n1, int m1,
             a3 = fmax(a3, a4);
             a1 = fmax(a1, a3);
 
-            //printf("%f ", C[i * m1 + j]);
             isPassed &= float_compare(C[i * m1 + j], a1, eps);
         }
-        //printf("\n");
     }
 
     if(isPassed) {

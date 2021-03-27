@@ -1,5 +1,4 @@
 *.exe
 
-PythonNeuro/
 vortexgpgpu/
 .DS_Store

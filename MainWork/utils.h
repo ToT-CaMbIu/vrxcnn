@@ -7,7 +7,7 @@ void store_image(float *imageOut,
                  int cols,
                  const char* refFilename);
 
-char* read_kernel_from_file(char* kernelPath);
+char* read_kernel_from_file(const char* kernelPath);
 
 bool float_compare(float lhs,
                    float rhs,
