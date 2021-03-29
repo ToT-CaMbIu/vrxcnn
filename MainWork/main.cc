@@ -8,41 +8,73 @@ double eps = 1e-7;
 
 //OpenCl
 struct CLVars {
-    cl_platform_id *platforms;
+    cl_platform_id *platforms = NULL;
     cl_uint num_platforms;
     cl_int clStatus;
-    cl_device_id *device_list;
+    cl_device_id *device_list = NULL;
     cl_uint num_devices;
-    cl_context context;
-    cl_kernel kernel;
-    cl_command_queue command_queue;
-    cl_program program;
-    char *kernel_string;
+    cl_context context = NULL;
+    cl_kernel kernel = NULL;
+    cl_command_queue command_queue = NULL;
+    cl_program program = NULL;
+    char *kernel_string = NULL;
+
+    //vortex
+    cl_platform_id platform = NULL;
+    cl_device_id device = NULL;
 };
 //
 
 void cl_clean(CLVars& cl_vars) {
-    if (cl_vars.command_queue) {
+    if(cl_vars.device != NULL) {
+        clReleaseDevice(cl_vars.device);
+    }
+    if (cl_vars.command_queue != NULL) {
         clReleaseCommandQueue(cl_vars.command_queue);
     }
-    if (cl_vars.kernel) {
+    if (cl_vars.kernel != NULL) {
         clReleaseKernel(cl_vars.kernel);
     }
-    if (cl_vars.program) {
+    if (cl_vars.program != NULL) {
         clReleaseProgram(cl_vars.program);
     }
-    if (cl_vars.context) {
+    if (cl_vars.context != NULL) {
         clReleaseContext(cl_vars.context);
     }
-    if(cl_vars.num_platforms) {
+    if(cl_vars.platforms != NULL) {
         free(cl_vars.platforms);
     }
-    if(cl_vars.num_devices) {
+    if(cl_vars.device_list != NULL) {
         free(cl_vars.device_list);
     }
-    if(cl_vars.kernel_string) {
+    if(cl_vars.kernel_string != NULL) {
         free(cl_vars.kernel_string);
     }
+}
+
+void opencl_environment_definition_vortex(CLVars& cl_vars,
+                                   const char* binary_source) {
+
+    //currently in work!!!
+    uint8_t *kernel_bin = NULL;
+    size_t kernel_size;
+
+    clGetPlatformIDs(1, &cl_vars.platform, NULL);
+    clGetDeviceIDs(cl_vars.platform, CL_DEVICE_TYPE_DEFAULT, 1, &cl_vars.device, NULL);
+    cl_vars.context = clCreateContext(NULL, 1, &cl_vars.device, NULL, NULL, &cl_vars.clStatus);
+
+    if (read_kernel_binary(binary_source, &kernel_bin, &kernel_size) == false) {
+        return;
+    }
+
+    cl_vars.program = clCreateProgramWithBinary(cl_vars.context, 1, &cl_vars.device, &kernel_size,
+                                                (const uint8_t**)&kernel_bin, &cl_vars.clStatus, NULL);
+    if (cl_vars.program == NULL) {
+        printf("Binary file load failed!");
+        return;
+    }
+    clBuildProgram(cl_vars.program, 1, &cl_vars.device, NULL, NULL, NULL);
+    cl_vars.command_queue = clCreateCommandQueue(cl_vars.context, cl_vars.device, 0, &cl_vars.clStatus);
 }
 
 void opencl_environment_definition(CLVars& cl_vars,
@@ -101,10 +133,10 @@ void opencl_create_program_conv(CLVars& cl_vars,
     clock_t t;
     t = clock();
 
-    cl_vars.clStatus &= clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 2, NULL,
+    cl_vars.clStatus |= clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 2, NULL,
                                               global_size, NULL, 0, NULL, NULL);
 
-    cl_vars.clStatus &= clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
+    cl_vars.clStatus |= clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
                                            n * m * sizeof(float), C, 0, NULL, NULL);
 
     t = clock() - t;
@@ -224,6 +256,7 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
 }
 
 float* make_matrix_mul(CLVars& cl_vars) {
+    opencl_environment_definition_vortex(cl_vars, "kernel_matrix_mul.pocl");
     opencl_environment_definition(cl_vars, "kernel_matrix_mul.cl");
 
     int n = 2, m = 2, k = 3;
@@ -346,18 +379,44 @@ float* make_max_pool(CLVars& cl_vars) {
     return C;
 }
 
-/*void h5() {
+#include <vector>
+#include <iostream>
+void h5() {
     std::string s = "../PythonNeuro/mnist_model.h5";
     H5::H5File file(s.c_str(), H5F_ACC_RDONLY);
-}*/
+    H5::DataSet dataset = file.openDataSet("/model_weights/conv2d/conv2d/kernel:0");
+    H5::DataSpace dataspace = dataset.getSpace();
+    int rank = dataspace.getSimpleExtentNdims();
+    std::cout << rank << std::endl;
+
+
+    hsize_t dims[4];
+    dataspace.getSimpleExtentDims(dims, NULL);
+    std::cout << dims[0] << " " << dims[1] << " " << dims[2] << " " << dims[3] << std::endl;
+
+    H5::DataSpace mem_space(4, dims);
+    float arr[3][3][1][32];
+
+    dataset.read(arr, H5::PredType::NATIVE_FLOAT, mem_space, dataspace);
+
+    for (int i = 0; i < 3; ++i) {
+        for(int j = 0; j < 3; ++j) {
+            for(int k = 0; k < 32; ++k) {
+                std::cout << arr[i][j][0][k] << std::endl;
+            }
+        }
+    }
+}
 
 int main (int argc, char **argv) {
 
     srand(time(nullptr));
 
+    h5();
+
     CLVars cl_pool;
 
-    make_max_pool(cl_pool);
+    //make_max_pool(cl_pool);
 
     cl_clean(cl_pool);
 

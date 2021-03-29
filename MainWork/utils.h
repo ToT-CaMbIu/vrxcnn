@@ -9,6 +9,10 @@ void store_image(float *imageOut,
 
 char* read_kernel_from_file(const char* kernelPath);
 
+bool read_kernel_binary(const char* filename,
+                        uint8_t** data,
+                        size_t* size);
+
 bool float_compare(float lhs,
                    float rhs,
                    float eps);

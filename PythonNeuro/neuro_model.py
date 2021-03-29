@@ -40,6 +40,6 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print("Train loss:", score[0])
 print("Train accuracy:", score[1])
 
-file_to_save = "mnist_model.h5";
+file_to_save = "mnist_model.h5"
 print("Saving results in: ", file_to_save)
 model.save("mnist_model.h5")

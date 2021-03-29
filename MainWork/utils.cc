@@ -205,6 +205,30 @@ char* read_kernel_from_file(const char* kernelPath) {
     return source;
 }
 
+bool read_kernel_binary(const char* filename,
+                        uint8_t** data,
+                        size_t* size) {
+    if (nullptr == filename || nullptr == data || 0 == size) {
+        return false;
+    }
+
+    FILE* fp = fopen(filename, "r");
+    if (NULL == fp) {
+        fprintf(stderr, "Failed to load kernel.");
+        return -1;
+    }
+    fseek(fp , 0 , SEEK_END);
+    long fsize = ftell(fp);
+    rewind(fp);
+
+    *data = (uint8_t*)malloc(fsize);
+    *size = fread(*data, 1, fsize, fp);
+
+    fclose(fp);
+
+    return true;
+}
+
 bool float_compare(float lhs,
                    float rhs,
                    float eps) {
