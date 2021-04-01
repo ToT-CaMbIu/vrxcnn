@@ -1,4 +1,5 @@
 *.exe
 
+vortex_tests/
 vortexgpgpu/
 .DS_Store

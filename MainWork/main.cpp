@@ -2,9 +2,28 @@
 
 #include "utils.h"
 
-const int mx_size = 10000;
 double time_taken = 0.0;
 double eps = 1e-7;
+
+#define CL_CHECK(_expr)                                                \
+   do {                                                                \
+     cl_int _err = _expr;                                              \
+     if (_err == CL_SUCCESS)                                           \
+       break;                                                          \
+     printf("OpenCL Error: '%s' returned %d!\n", #_expr, (int)_err);   \
+     break;                                                            \
+   } while (0)
+
+#define CL_CHECK2(_expr)                                               \
+   ({                                                                  \
+     cl_int _err = CL_INVALID_VALUE;                                   \
+     decltype(_expr) _ret = _expr;                                     \
+     if (_err != CL_SUCCESS) {                                         \
+       printf("OpenCL Error: '%s' returned %d!\n", #_expr, (int)_err); \
+       break;                                                          \
+     }                                                                 \
+     _ret;                                                             \
+   })
 
 //OpenCl
 struct CLVars {
@@ -28,27 +47,29 @@ struct CLVars {
 void cl_clean(CLVars& cl_vars) {
     if(cl_vars.device != NULL) {
         clReleaseDevice(cl_vars.device);
+        //std::cout << "device released" << std::endl;
     }
     if (cl_vars.command_queue != NULL) {
         clReleaseCommandQueue(cl_vars.command_queue);
+        //std::cout << "command_queue released" << std::endl;
     }
     if (cl_vars.kernel != NULL) {
         clReleaseKernel(cl_vars.kernel);
+        //std::cout << "kernel released" << std::endl;
     }
     if (cl_vars.program != NULL) {
         clReleaseProgram(cl_vars.program);
+        //std::cout << "program released" << std::endl;
     }
     if (cl_vars.context != NULL) {
         clReleaseContext(cl_vars.context);
+        //std::cout << "context released" << std::endl;
     }
     if(cl_vars.platforms != NULL) {
         free(cl_vars.platforms);
     }
     if(cl_vars.device_list != NULL) {
         free(cl_vars.device_list);
-    }
-    if(cl_vars.kernel_string != NULL) {
-        free(cl_vars.kernel_string);
     }
 }
 
@@ -214,35 +235,41 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
     clEnqueueWriteBuffer(cl_vars.command_queue, B_clmem, CL_TRUE, 0,
                                              k * m * sizeof(float), B, 0, NULL, NULL);
 
-    clBuildProgram(cl_vars.program, 1, cl_vars.device_list, NULL, NULL, NULL);
+    CL_CHECK(clBuildProgram(cl_vars.program, 1, cl_vars.device_list, NULL, NULL, NULL));
 
     cl_vars.kernel = clCreateKernel(cl_vars.program, kernel_name, &cl_vars.clStatus);
 
-    int TS = k / 2;
+    int TS_x = find_divisor(n);
+    int TS_y = find_divisor(m);
+
+    std::cout << TS_x << " " << TS_y << std::endl;
 
     clSetKernelArg(cl_vars.kernel, 0, sizeof(int), (void *) &n);
     clSetKernelArg(cl_vars.kernel, 1, sizeof(int), (void *) &m);
     clSetKernelArg(cl_vars.kernel, 2, sizeof(int), (void *) &k);
-    clSetKernelArg(cl_vars.kernel, 3, sizeof(int), (void *) &TS);
-    clSetKernelArg(cl_vars.kernel, 4, sizeof(cl_mem), (void *) &A_clmem);
-    clSetKernelArg(cl_vars.kernel, 5, sizeof(cl_mem), (void *) &B_clmem);
-    clSetKernelArg(cl_vars.kernel, 6, sizeof(cl_mem), (void *) &C_clmem);
-    clSetKernelArg(cl_vars.kernel, 7, TS * TS * sizeof(float), NULL);
-    clSetKernelArg(cl_vars.kernel, 8, TS * TS * sizeof(float), NULL);
+    clSetKernelArg(cl_vars.kernel, 3, sizeof(int), (void *) &TS_x);
+    clSetKernelArg(cl_vars.kernel, 4, sizeof(int), (void *) &TS_y);
+    clSetKernelArg(cl_vars.kernel, 5, sizeof(cl_mem), (void *) &A_clmem);
+    clSetKernelArg(cl_vars.kernel, 6, sizeof(cl_mem), (void *) &B_clmem);
+    clSetKernelArg(cl_vars.kernel, 7, sizeof(cl_mem), (void *) &C_clmem);
+    //clSetKernelArg(cl_vars.kernel, 8, TS_x * TS_y * sizeof(float), NULL);
+    //clSetKernelArg(cl_vars.kernel, 9, TS_x * TS_y * sizeof(float), NULL);
 
     size_t global_size[2];
     size_t local_size[2];
 
     global_size[0] = n;
     global_size[1] = m;
-    local_size[0] = TS;
-    local_size[1] = TS;
+    local_size[0] = TS_x;
+    local_size[1] = TS_y;
 
     clock_t t;
     t = clock();
 
-    clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 2, NULL,
-                                               global_size, local_size, 0, NULL, NULL);
+    CL_CHECK(clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 2, NULL,
+                                               global_size, NULL, 0, NULL, NULL));
+
+    CL_CHECK(clFinish(cl_vars.command_queue));
 
     clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
                                             n * m * sizeof(float), C, 0, NULL, NULL);
@@ -255,25 +282,27 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
     clReleaseMemObject(C_clmem);
 }
 
-float* make_matrix_mul(CLVars& cl_vars) {
-    opencl_environment_definition_vortex(cl_vars, "kernel_matrix_mul.pocl");
+std::vector<float> make_matrix_mul(CLVars& cl_vars) {
+    //opencl_environment_definition_vortex(c    l_vars, "kernel_matrix_mul.pocl");
     opencl_environment_definition(cl_vars, "kernel_matrix_mul.cl");
 
-    int n = 2, m = 2, k = 3;
+    int n = rand() % 500 + 3, m = rand() % 500 + 3, k = rand() % 500 + 3;
 
-    float *A = (float *) malloc(sizeof(float) * n * k);
-    float *B = (float *) malloc(sizeof(float) * k * m);
-    float *C = (float *) malloc(sizeof(float) * n * m);
+    std::cout << n << " " << m << " " << k << std::endl;
+
+    std::vector<float> A(n * k);
+    std::vector<float> B(k * m);
+    std::vector<float> C(n * m);
 
     for (size_t i = 0; i < n; i++) {
         for(size_t j = 0; j < k; ++j) {
-            A[i * k + j] = 1.0 + rand() % 3;
+            A[i * k + j] = 3.1 * (float)(rand() % 3 + 1);
         }
     }
 
     for (size_t i = 0; i < k; i++) {
         for(size_t j = 0; j < m; ++j) {
-            B[i * m + j] = 1.0 + rand() % 3;
+            B[i * m + j] = 3.3 * (float)(rand() % 3 + 1);
         }
     }
 
@@ -283,61 +312,59 @@ float* make_matrix_mul(CLVars& cl_vars) {
         }
     }
 
-    print_matrix(A, n, k);
-    print_matrix(B, k, m);
+    //print_matrix(A, n, k);
+    //print_matrix(B, k, m);
 
-    opencl_create_program_matrix_mul(cl_vars, "matrix_mul", A, B, C, n, m, k);
+    opencl_create_program_matrix_mul(cl_vars, "matrix_mul",
+                                     A.data(), B.data(), C.data(), n, m, k);
+
+    //print_matrix(C, n, m);
 
     test_matrix_mul(n, m, k, A, B, C);
-
-    print_matrix(C, n, m);
 
     printf("kernels took %f seconds to execute \n", time_taken);
 
     time_taken = 0.0f;
 
-    free(A);
-    free(B);
-
     return C;
 }
 
-float* make_convolution(CLVars& cl_vars) {
+std::vector<float> make_convolution(CLVars& cl_vars) {
      opencl_environment_definition(cl_vars, "kernel_conv.cl");
 
      int n = 1000, m = 1000;
      int n1 = 3, m1 = 3;
 
-     float *A = (float *) malloc(sizeof(float) * n * m);
-     float *Filter = (float *) malloc(sizeof(float) * n1 * m1);
-     float *C = (float *) malloc(sizeof(float) * n * m);
+     std::vector<float> A(n * m);
+     std::vector<float> Filter(n1 * m1);
+     std::vector<float> C(n * m);
 
      for (size_t i = 0; i < n; i++) {
          for(size_t j = 0; j < m; ++j) {
-             A[i * m + j] = j;
+             A[i * m + j] = 2.0 * (rand() % (j + 1));
              C[i * m + j] = 0;
          }
      }
 
      for (size_t i = 0; i < n1; i++) {
          for(size_t j = 0; j < m1; ++j) {
-             Filter[i * m1 + j] = 1;
+             Filter[i * m1 + j] = 1.0;
          }
      }
 
-     opencl_create_program_conv(cl_vars, "matrix_convolutional_transformation", A, Filter, C, n, m, n1, m1);
+     opencl_create_program_conv(cl_vars, "matrix_convolutional_transformation", A.data(),
+                                Filter.data(), C.data(), n, m, n1, m1);
 
      test_convolution(n, m, n1, m1, A, Filter, C);
 
      printf("kernels took %f seconds to execute \n", time_taken);
 
-     free(A);
-     free(Filter);
+     time_taken = 0.0f;
 
      return C;
  }
 
-float* make_max_pool(CLVars& cl_vars) {
+std::vector<float> make_max_pool(CLVars& cl_vars) {
     opencl_environment_definition(cl_vars, "kernel_max_pool.cl");
 
     int n = rand() % 1111 + 3, m = rand() % 1111 + 3;
@@ -348,12 +375,12 @@ float* make_max_pool(CLVars& cl_vars) {
     int n1 = nc / 2;
     int m1 = mc / 2;
 
-    float *A = (float *) malloc(sizeof(float) * nc * mc);
-    float *C = (float *) malloc(sizeof(float) * n1 * m1);
+    std::vector<float> A(nc * mc);
+    std::vector<float> C(n1 * m1);
 
     int pos = 0;
-    for (int i = 0; i < nc; ++i) {
-        for (int j = 0; j < mc; ++j) {
+    for (size_t i = 0; i < nc; ++i) {
+        for (size_t j = 0; j < mc; ++j) {
             if (i >= n || j >= m) {
                 A[pos++] = 0.0;
                 continue;
@@ -364,7 +391,8 @@ float* make_max_pool(CLVars& cl_vars) {
     
     //print_matrix(A, mc, nc);
 
-    opencl_create_program_max_pool(cl_vars, "matrix_max_pool_transformation", A, C, nc, mc);
+    opencl_create_program_max_pool(cl_vars, "matrix_max_pool_transformation",
+                                   A.data(), C.data(), nc, mc);
     
     //print_matrix(C, m1, n1);
 
@@ -374,13 +402,10 @@ float* make_max_pool(CLVars& cl_vars) {
 
     time_taken = 0.0f;
 
-    free(A);
-
     return C;
 }
 
-#include <vector>
-#include <iostream>
+#ifdef h5_debug
 void h5() {
     std::string s = "../PythonNeuro/mnist_model.h5";
     H5::H5File file(s.c_str(), H5F_ACC_RDONLY);
@@ -407,18 +432,22 @@ void h5() {
         }
     }
 }
+#endif
 
 int main (int argc, char **argv) {
 
     srand(time(nullptr));
 
-    h5();
+    CLVars cl_vars;
 
-    CLVars cl_pool;
+    for(int i = 0; i < 100; ++i) {
+        make_matrix_mul(cl_vars);
+        cl_clean(cl_vars);
+    }
 
-    //make_max_pool(cl_pool);
-
-    cl_clean(cl_pool);
+    if(cl_vars.kernel_string != NULL) {
+        free(cl_vars.kernel_string);
+    }
 
     return 0;
 }

@@ -1,12 +1,9 @@
 exe_name = main
 
-SRCS = main.cc utils.cc
-
-all: $(SRCS)
-	gcc -o $(exe_name) -std=c++11 $^ -framework OpenCL
+SRCS = utils.cpp main.cpp
 
 cpp: $(SRCS)
-	g++ -o $(exe_name) -std=c++11 $^ -framework OpenCL
+	g++ -std=c++11 $^ -o $(exe_name) -framework OpenCL
 
 h5: $(SRCS)
 	h5c++ -o $(exe_name) $^ -lm -framework OpenCL
@@ -38,8 +35,6 @@ LDFLAGS += -L$(POCL_RT_PATH)/lib -L$(VORTEX_DRV_PATH)/simx -lOpenCL -lvortex
 KERNEL_NAME += kernel_matrix_mul
 
 PROJECT = matrix_mul_test
-
-SRCS = main.cc utils.cc
 
 vortex: $(PROJECT) $(KERNEL_NAME).pocl
 

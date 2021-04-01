@@ -13,5 +13,12 @@
 #include <chrono>
 #include <time.h>
 
-#include "hdf5.h"
-#include <H5Cpp.h>
+//cpp
+#include <vector>
+#include <iostream>
+
+//#define h5_debug
+#ifdef h5_debug
+    #include "hdf5.h"
+    #include <H5Cpp.h>
+#endif
