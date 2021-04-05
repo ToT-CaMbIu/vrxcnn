@@ -1,12 +1,22 @@
 exe_name = main
 
-SRCS = utils.cpp main.cpp
+h5_part = -I/usr/local/opt/szip/include\
+-L/usr/local/Cellar/hdf5/1.12.0_1/lib \
+/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5_hl_cpp.a \
+/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5_cpp.a \
+/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5_hl.a \
+/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5.a \
+-L/usr/local/opt/szip/lib -lsz -lz -ldl -lm
 
-cpp: $(SRCS)
-	g++ -std=c++11 $^ -o $(exe_name) -framework OpenCL
+SRCS = utils.cpp main.cpp h5_helper.cpp
+
+all: cpp
+
+cpp:
+	g++ -std=c++17 utils.cpp main.cpp -o $(exe_name) -framework OpenCL
 
 h5: $(SRCS)
-	h5c++ -o $(exe_name) $^ -lm -framework OpenCL
+	g++ $(h5_part) -std=c++17 $^ -o $(exe_name) -framework OpenCL
 
 clean:
 	rm -rf $(exe_name) *.o .depend
