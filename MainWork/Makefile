@@ -12,7 +12,7 @@ SRCS = utils.cpp main.cpp h5_helper.cpp
 
 all: cpp
 
-cpp:
+cpp: $(SRCS)
 	g++ -std=c++17 utils.cpp main.cpp -o $(exe_name) -framework OpenCL
 
 h5: $(SRCS)

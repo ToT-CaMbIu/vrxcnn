@@ -69,7 +69,7 @@ bool test_convolution(int n, int m, int n1, int m1,
 }
 
 template<typename T>
-bool test_max_pool(int nc, int mc, int n1, int m1,
+bool test_max_pool(int n, int m, int n1, int m1,
                    const std::vector<T>& A,
                    const std::vector<T>& C,
                    float eps = 1e-7) {
@@ -78,17 +78,17 @@ bool test_max_pool(int nc, int mc, int n1, int m1,
     for (size_t i = 0; i < n1; ++i) {
         for(size_t j = 0; j < m1; ++j) {
             float a1 = -1e9,a2 = -1e9,a3 = -1e9,a4 = -1e9;
-            if(i * 2 * mc + j * 2 < mc * nc) {
-                a1 = A[i * 2 * mc + j * 2];
+            if(i * 2 < n && j * 2 < m) {
+                a1 = A[i * 2 * m + j * 2];
             }
-            if(i * 2 * mc + j * 2 + 1 < mc * nc) {
-                a2 = A[i * 2 * mc + j * 2 + 1];
+            if(i * 2 < n && j * 2 + 1 < m) {
+                a2 = A[i * 2 * m + j * 2 + 1];
             }
-            if((i * 2 + 1) * mc + j * 2 < mc * nc) {
-                a3 = A[(i * 2 + 1) * mc + j * 2];
+            if((i * 2 + 1) < n && j * 2 < m) {
+                a3 = A[(i * 2 + 1) * m + j * 2];
             }
-            if((i * 2 + 1) * mc + (j * 2 + 1) < mc * nc) {
-                a4 = A[(i * 2 + 1) * mc + (j * 2 + 1)];
+            if((i * 2 + 1) < n && (j * 2 + 1) < m) {
+                a4 = A[(i * 2 + 1) * m + (j * 2 + 1)];
             }
 
             a1 = fmax(a1, a2);

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-#define h5_debug
+void h5_test();
 
 template<typename T>
 void read_weights_from_file(const std::string& path,

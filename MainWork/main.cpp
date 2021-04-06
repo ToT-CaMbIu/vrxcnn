@@ -168,16 +168,21 @@ void opencl_create_program_max_pool(CLVars& cl_vars,
                                     float *A,
                                     float *C,
                                     int n, int m) {
+    int nc = n;
+    int mc = m;
+    n = (n + (n & 1));
+    m = (m + (m & 1));
+
     int n1 = n / 2;
     int m1 = m / 2;
 
     cl_mem A_clmem = clCreateBuffer(cl_vars.context, CL_MEM_READ_ONLY,
-                                    n * m * sizeof(float), NULL, &cl_vars.clStatus);
+                                    nc * mc * sizeof(float), NULL, &cl_vars.clStatus);
     cl_mem C_clmem = clCreateBuffer(cl_vars.context, CL_MEM_WRITE_ONLY,
                                     n1 * m1 * sizeof(float), NULL, &cl_vars.clStatus);
 
     clEnqueueWriteBuffer(cl_vars.command_queue, A_clmem, CL_TRUE, 0,
-                                            n * m * sizeof(float), A, 0, NULL, NULL);
+                                            nc * mc * sizeof(float), A, 0, NULL, NULL);
 
     clBuildProgram(cl_vars.program, 1, cl_vars.device_list, NULL, NULL, NULL);
 
@@ -185,8 +190,10 @@ void opencl_create_program_max_pool(CLVars& cl_vars,
 
     clSetKernelArg(cl_vars.kernel, 0, sizeof(int), (void *) &n);
     clSetKernelArg(cl_vars.kernel, 1, sizeof(int), (void *) &m);
-    clSetKernelArg(cl_vars.kernel, 2, sizeof(cl_mem), (void *) &A_clmem);
-    clSetKernelArg(cl_vars.kernel, 3, sizeof(cl_mem), (void *) &C_clmem);
+    clSetKernelArg(cl_vars.kernel, 2, sizeof(int), (void *) &nc);
+    clSetKernelArg(cl_vars.kernel, 3, sizeof(int), (void *) &mc);
+    clSetKernelArg(cl_vars.kernel, 4, sizeof(cl_mem), (void *) &A_clmem);
+    clSetKernelArg(cl_vars.kernel, 5, sizeof(cl_mem), (void *) &C_clmem);
 
     size_t global_size[2];
     size_t local_size[2];
@@ -201,8 +208,8 @@ void opencl_create_program_max_pool(CLVars& cl_vars,
 
     clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 2, NULL,
                                               global_size, local_size, 0, NULL, NULL);
-    clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
-                                           n1 * m1 * sizeof(float), C, 0, NULL, NULL);
+    CL_CHECK(clEnqueueReadBuffer(cl_vars.command_queue, C_clmem, CL_TRUE, 0,
+                                           n1 * m1 * sizeof(float), C, 0, NULL, NULL));
 
     t = clock() - t;
     time_taken += ((double)t)/CLOCKS_PER_SEC; // in seconds
@@ -227,7 +234,6 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
 
     clEnqueueWriteBuffer(cl_vars.command_queue, A_clmem, CL_TRUE, 0,
                                              n * k * sizeof(float), A, 0, NULL, NULL);
-
     clEnqueueWriteBuffer(cl_vars.command_queue, B_clmem, CL_TRUE, 0,
                                              k * m * sizeof(float), B, 0, NULL, NULL);
 
@@ -267,8 +273,6 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
         global_size[1] += TS - (global_size[1] % TS);
     }
 
-    std::cout << global_size[0] << " " << global_size[1] << " " << k << std::endl;
-
     local_size[0] = TS;
     local_size[1] = TS;
 
@@ -294,7 +298,7 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
 std::vector<float> make_matrix_mul(CLVars& cl_vars) {
     opencl_environment_definition(cl_vars, "kernel_matrix_mul.cl");
 
-    int n = rand() % 200 + 3, m = rand() % 200 + 3, k = rand() % 200 + 3, TS = 8;
+    int n = rand() % 1000 + 3, m = rand() % 1000 + 3, k = rand() % 1000 + 3, TS = 8;
 
     std::cout << n << " " << m << " " << k << std::endl;
 
@@ -363,7 +367,7 @@ std::vector<float> make_convolution(CLVars& cl_vars) {
      opencl_create_program_conv(cl_vars, "matrix_convolutional_transformation", A.data(),
                                 Filter.data(), C.data(), n, m, n1, m1);
 
-    assert(test_convolution(n, m, n1, m1, A, Filter, C));
+     assert(test_convolution(n, m, n1, m1, A, Filter, C));
 
      printf("kernels took %f seconds to execute \n", time_taken);
 
@@ -375,36 +379,30 @@ std::vector<float> make_convolution(CLVars& cl_vars) {
 std::vector<float> make_max_pool(CLVars& cl_vars) {
     opencl_environment_definition(cl_vars, "kernel_max_pool.cl");
 
-    int n = rand() % 1111 + 3, m = rand() % 1111 + 3;
-    printf("n = %d, m = %d\n", n, m);
-    
-    int nc = n + (n & 1), mc = m + (m & 1);
+    int n = rand() % 1000 + 3, m = rand() % 1122 + 3;
 
-    int n1 = nc / 2;
-    int m1 = mc / 2;
+    std::cout << n << " " << m << std::endl;
 
-    std::vector<float> A(nc * mc);
+    int n1 = (n + (n & 1)) / 2;
+    int m1 = (m + (m & 1)) / 2;
+
+    std::vector<float> A(n * m);
     std::vector<float> C(n1 * m1);
 
-    int pos = 0;
-    for (size_t i = 0; i < nc; ++i) {
-        for (size_t j = 0; j < mc; ++j) {
-            if (i >= n || j >= m) {
-                A[pos++] = 0.0;
-                continue;
-            }
-            A[pos++] = rand() % 3 + 1.0 / (1.0 + rand() % 3);
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < m; ++j) {
+            A[i * m + j] = rand() % 3 + 1.0 / (1.0 + rand() % 3);
         }
     }
     
-    //print_matrix(A, mc, nc);
+    //print_matrix(A, n, m);
 
     opencl_create_program_max_pool(cl_vars, "matrix_max_pool_transformation",
-                                   A.data(), C.data(), nc, mc);
+                                   A.data(), C.data(), n, m);
     
-    //print_matrix(C, m1, n1);
+    //print_matrix(C, n1, m1);
 
-    assert(test_max_pool(nc, mc, n1, m1, A, C));
+    assert(test_max_pool(n, m, n1, m1, A, C));
 
     printf("kernels took %f seconds to execute \n", time_taken);
 
@@ -413,22 +411,6 @@ std::vector<float> make_max_pool(CLVars& cl_vars) {
     return C;
 }
 
-#ifdef h5_debug
-#include "h5_helper.h"
-void h5_test() {
-    std::string path = "../PythonNeuro/mnist_model.h5";
-    std::string layer = "/model_weights/conv2d/conv2d/kernel:0";
-    std::vector<float> weights(3 * 3 * 1 * 32);
-    std::vector<int> dims(4);
-
-    read_weights_from_file(path, layer, weights, dims.size());
-
-    for (int i = 0; i < weights.size(); ++i) {
-        std::cout << weights[i] << std::endl;
-    }
-}
-#endif
-
 int main (int argc, char **argv) {
 
     srand(time(nullptr));
@@ -436,7 +418,7 @@ int main (int argc, char **argv) {
     CLVars cl_vars;
 
     for(int i = 0; i < 100; ++i) {
-        make_matrix_mul(cl_vars);
+        make_max_pool(cl_vars);
         cl_clean(cl_vars);
     }
 
