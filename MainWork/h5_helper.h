@@ -4,22 +4,39 @@
 #include <vector>
 #include <iostream>
 #include <string>
-
-void h5_test();
+#include <optional>
 
 template<typename T>
-void read_weights_from_file(const std::string& path,
-                            const std::string& layer,
-                            std::vector<T>& weights,
-                            const size_t numDims) {
-    H5::H5File file(path.c_str(), H5F_ACC_RDONLY);
-    H5::DataSet dataSet = file.openDataSet(layer);
-    H5::DataSpace dataSpace = dataSet.getSpace();
+std::optional<std::vector<float>> read_weights_from_file(const std::string& path,
+                                                         const std::string& layer,
+                                                         std::vector<T>& dimensions) {
 
-    hsize_t dims[numDims];
-    dataSpace.getSimpleExtentDims(dims, nullptr);
+    const int numDims = dimensions.size();
 
-    H5::DataSpace memSpace(4, dims);
+    if(numDims <= 0) {
+        return std::nullopt;
+    }
 
-    dataSet.read(weights.data(), H5::PredType::NATIVE_FLOAT, memSpace, dataSpace);
+    try {
+        H5::H5File file(path.c_str(), H5F_ACC_RDONLY);
+        H5::DataSet dataSet = file.openDataSet(layer);
+        H5::DataSpace dataSpace = dataSet.getSpace();
+
+        hsize_t dims[numDims];
+        dataSpace.getSimpleExtentDims(dims, nullptr);
+
+        H5::DataSpace memSpace(numDims, dims);
+
+        size_t sz = std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<int>());
+        std::vector<float> weights(sz);
+
+        dataSet.read(weights.data(), H5::PredType::NATIVE_FLOAT, memSpace, dataSpace);
+
+        return weights;
+    }
+    catch (...) {
+        return std::nullopt;
+    }
+
+    return std::nullopt;
 }

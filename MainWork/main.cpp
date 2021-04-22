@@ -1,6 +1,7 @@
 #include "connected_libs.h"
 
 #include "utils.h"
+//#include "h5_helper.h"
 
 double eps = 1e-7;
 
@@ -403,6 +404,18 @@ int main (int argc, char **argv) {
     }
 
     free(cl_vars.kernel_string);
+
+    /*std::vector<size_t> dims = {3,3,1,32};
+    std::string path = "../PythonNeuro/mnist_model.h5";
+    std::string layer = "/model_weights/conv2d/conv2d/kernel:0";
+
+    auto t = read_weights_from_file(path, layer, dims);
+
+    if(t.has_value()) {
+        for(const auto& weight : t.value()) {
+            std::cout << weight << std::endl;
+        }
+    }*/
 
     return 0;
 }
