@@ -8,18 +8,23 @@ h5_part = -I/usr/local/opt/szip/include\
 /usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5.a \
 -L/usr/local/opt/szip/lib -lsz -lz -ldl -lm
 
-SRCS = utils.cpp main.cpp h5_helper.cpp
+SRCS = utils.cpp main.cpp
 
 all: cpp
 
+flags = -std=c++17 -O2
+
 cpp: $(SRCS)
-	g++ -std=c++17 utils.cpp main.cpp -o $(exe_name) -framework OpenCL
+	g++ $(flags) $^ -o $(exe_name) -framework OpenCL
 
 h5: $(SRCS)
-	g++ $(h5_part) -std=c++17 $^ -o $(exe_name) -framework OpenCL
+	g++ $(h5_part) $(flags) $^ h5_helper.cpp -o $(exe_name) -framework OpenCL
 
 clean:
 	rm -rf $(exe_name) *.o .depend
+
+clean-all: clean
+	rm -rf *.pocl *.dump
 
 #vortex region
 
@@ -36,9 +41,9 @@ K_LLCFLAGS += "-O3 -march=riscv32 -target-abi=ilp32f -mcpu=generic-rv32 -mattr=+
 K_CFLAGS   += "-v -O3 --sysroot=$(SYSROOT) --gcc-toolchain=$(RISCV_TOOLCHAIN_PATH) -march=rv32imf -mabi=ilp32f -I$(VORTEX_RT_PATH)/include -fno-rtti -fno-exceptions -ffreestanding -nostartfiles -fdata-sections -ffunction-sections"
 K_LDFLAGS  += "-Wl,-Bstatic,-T$(VORTEX_RT_PATH)/linker/vx_link.ld -Wl,--gc-sections $(VORTEX_RT_PATH)/libvortexrt.a -lm"
 
-CXXFLAGS += -std=c++11 -O2 -Wall -Wextra -pedantic -Wfatal-errors
+CXXFLAGS += -std=c++17 -O2 -Wall -Wextra -pedantic -Wfatal-errors
 
-CXXFLAGS += -I$(POCL_RT_PATH)/include
+CXXFLAGS += -I$(POCL_RT_PATH)/include -I.
 
 LDFLAGS += -L$(POCL_RT_PATH)/lib -L$(VORTEX_DRV_PATH)/simx -lOpenCL -lvortex
 

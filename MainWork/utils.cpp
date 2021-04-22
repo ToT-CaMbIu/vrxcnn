@@ -235,3 +235,14 @@ bool float_compare(float lhs,
                    float eps) {
     return fabs(lhs - rhs) <= eps;
 }
+
+float bin_pow(float num, uint32_t power) {
+    if(power <= 0) {
+        return 1;
+    }
+    if(power & 1) {
+        return num * bin_pow(num, power - 1);
+    }
+    float result = bin_pow(num, power >> 1);
+    return result * result;
+}

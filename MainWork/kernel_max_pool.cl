@@ -9,11 +9,11 @@ __kernel void matrix_max_pool_transformation(int n,
     const int localCol = get_local_id(1);
     const int globalRow = get_global_id(0);
     const int globalCol = get_global_id(1);
-    
+
     const int tx = globalRow / 2;
     const int ty = globalCol / 2;
     const int align = m / 2;
-    
+
     __local float val[4];
 
     if(globalRow < n1 && globalCol < m1) {

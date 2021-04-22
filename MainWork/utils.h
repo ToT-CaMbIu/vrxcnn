@@ -1,6 +1,7 @@
 #include <vector>
 #include <iostream>
 #include <optional>
+#include <math.h>
 
 float* read_image(const char *filename,
                   int* widthOut,
@@ -20,6 +21,8 @@ bool read_kernel_binary(const char* filename,
 bool float_compare(float lhs,
                    float rhs,
                    float eps);
+
+float bin_pow(float num, uint32_t power);
 
 template<typename T>
 void print_matrix(const std::vector<T>& matrix,
@@ -91,9 +94,9 @@ bool test_max_pool(int n, int m, int n1, int m1,
                 a4 = A[(i * 2 + 1) * m + (j * 2 + 1)];
             }
 
-            a1 = fmax(a1, a2);
-            a3 = fmax(a3, a4);
-            a1 = fmax(a1, a3);
+            a1 = std::max(a1, a2);
+            a3 = std::max(a3, a4);
+            a1 = std::max(a1, a3);
 
             isPassed &= float_compare(C[i * m1 + j], a1, eps);
         }
@@ -160,3 +163,4 @@ std::optional<std::vector<T>> matrix_expand(const std::vector<T> & arr,
 
     return fin;
 }
+
