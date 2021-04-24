@@ -36,11 +36,12 @@ void print_matrix(const std::vector<T>& matrix,
 }
 
 template<typename T>
-bool test_convolution(int n, int m, int n1, int m1,
-                      const std::vector<T>& A,
-                      const std::vector<T>& Filter,
-                      const std::vector<T>& C,
-                      float eps = 1e-7) {
+bool test_convolution_padding(int n, int m,
+                              int n1, int m1,
+                              const std::vector<T>& A,
+                              const std::vector<T>& Filter,
+                              const std::vector<T>& C,
+                              float eps = 1e-7) {
 
     bool isPassed = true;
     for (size_t i = 0; i < n; ++i) {
@@ -72,7 +73,44 @@ bool test_convolution(int n, int m, int n1, int m1,
 }
 
 template<typename T>
-bool test_max_pool(int n, int m, int n1, int m1,
+bool test_convolution_valid(int n, int m,
+                            int n1, int m1,
+                            int n2, int m2,
+                            const std::vector<T>& A,
+                            const std::vector<T>& Filter,
+                            const std::vector<T>& C,
+                            float eps = 1e-7) {
+
+    bool isPassed = true;
+    for (size_t i = 0; i < n2; ++i) {
+        for(size_t j = 0; j < m2; ++j) {
+            float val = 0;
+
+            for(size_t i1 = 0; i1 < n1; ++i1) {
+                for(size_t j1 = 0; j1 < m1; ++j1) {
+                    val += (Filter[i1 * m1 + j1] * A[(i + i1) * m + (j + j1)]);
+                }
+            }
+
+            //std::cout << val << " ";
+            isPassed &= float_compare(val, C[i * m2 + j], eps);
+        }
+        //std::cout << std::endl;
+    }
+
+    if(isPassed) {
+        std::cout << "Passed!" << std::endl;
+    }
+    else {
+        std::cout << "Failed!" << std::endl;
+    }
+
+    return isPassed;
+}
+
+template<typename T>
+bool test_max_pool(int n, int m,
+                   int n1, int m1,
                    const std::vector<T>& A,
                    const std::vector<T>& C,
                    float eps = 1e-7) {
@@ -113,7 +151,8 @@ bool test_max_pool(int n, int m, int n1, int m1,
 }
 
 template<typename T>
-bool test_matrix_mul(int n, int m, int k,
+bool test_matrix_mul(int n, int m,
+                     int k,
                      const std::vector<T>& A,
                      const std::vector<T>& B,
                      const std::vector<T>& C,
