@@ -1,4 +1,5 @@
 *.exe
+*.exec
 
 .DS_Store
 .idea

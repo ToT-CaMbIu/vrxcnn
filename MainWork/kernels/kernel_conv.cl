@@ -24,6 +24,8 @@
     C[row * m + col] = val;
 }*/
 
+#include "activation_funtions.h"
+
 int toeplitz_changer(const int row,
                      const int col,
                      const int m,

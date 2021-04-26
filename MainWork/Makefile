@@ -8,7 +8,8 @@ h5_part = -I/usr/local/opt/szip/include\
 /usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5.a \
 -L/usr/local/opt/szip/lib -lsz -lz -ldl -lm
 
-SRCS = utils.cpp main.cpp
+LAYERS_DIR = ./hosts
+SRCS = utils.cpp main.cpp opencl_environment.cpp $(LAYERS_DIR)/*.cpp
 
 all: cpp
 

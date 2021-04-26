@@ -1,3 +1,5 @@
+#include "activation_funtions.h"
+
 __kernel void matrix_max_pool_transformation(int n,
                                              int m,
                                              int n1,

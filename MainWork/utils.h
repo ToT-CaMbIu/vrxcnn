@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <iostream>
 #include <optional>
@@ -92,10 +94,8 @@ bool test_convolution_valid(int n, int m,
                 }
             }
 
-            //std::cout << val << " ";
             isPassed &= float_compare(val, C[i * m2 + j], eps);
         }
-        //std::cout << std::endl;
     }
 
     if(isPassed) {
@@ -164,10 +164,8 @@ bool test_matrix_mul(int n, int m,
             for(size_t p = 0; p < k; ++p) {
                 val += A[i * k + p] * B[p * m + j];
             }
-//            std::cout << val << " ";
             isPassed &= float_compare(val, C[i * m + j], eps);
         }
-//        std::cout << std::endl;
     }
 
     if(isPassed) {
