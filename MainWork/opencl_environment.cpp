@@ -27,7 +27,7 @@ void cl_clean(CLVars& cl_vars) {
 
 void opencl_environment_definition_vortex(CLVars& cl_vars,
                                           const char* binary_source) {
-    uint8_t *kernel_bin = nullptr;
+    /*uint8_t *kernel_bin = nullptr;
     size_t kernel_size;
 
     if (read_kernel_binary(binary_source, &kernel_bin, &kernel_size) == false) {
@@ -46,7 +46,7 @@ void opencl_environment_definition_vortex(CLVars& cl_vars,
         return;
     }
     CL_CHECK(clBuildProgram(cl_vars.program, 1, &cl_vars.device, nullptr, nullptr, nullptr));
-    cl_vars.command_queue = CL_CHECK2(clCreateCommandQueue(cl_vars.context, cl_vars.device, 0, &cl_vars.clStatus));
+    cl_vars.command_queue = CL_CHECK2(clCreateCommandQueue(cl_vars.context, cl_vars.device, 0, &cl_vars.clStatus));*/
 }
 
 void opencl_environment_definition(CLVars& cl_vars,

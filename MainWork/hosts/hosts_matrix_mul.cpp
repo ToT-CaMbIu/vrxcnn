@@ -31,8 +31,6 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
         k += ts - (k % ts);
     }
 
-    std::cout << k << std::endl;
-
     clSetKernelArg(cl_vars.kernel, 0, sizeof(int), (void *) &n);
     clSetKernelArg(cl_vars.kernel, 1, sizeof(int), (void *) &m);
     clSetKernelArg(cl_vars.kernel, 2, sizeof(int), (void *) &k);
@@ -84,7 +82,10 @@ std::vector<float> make_matrix_mul(CLVars& cl_vars) {
 
     opencl_environment_definition(cl_vars, "kernels/kernel_matrix_mul.cl");
 
-    int n = rand() % 1000 + 3, m = rand() % 1000 + 3, k = rand() % 1000 + 3, ts = 5;
+    int n = rand() % 1000 + 100, m = rand() % 1000 + 100, k = rand() % 1000 + 100, ts = 15;
+
+    std::cout << "matrix multiplication" << std::endl;
+    std::cout << "n: " << n << " m: " << m << " k: " << k << " ts: " << ts << std::endl;
 
     std::vector<float> A(n * k);
     std::vector<float> B(k * m);
@@ -102,13 +103,8 @@ std::vector<float> make_matrix_mul(CLVars& cl_vars) {
         }
     }
 
-    //print_matrix(A, n, k);
-    //print_matrix(B, k, m);
-
     opencl_create_program_matrix_mul(cl_vars, "matrix_mul",
                                      A.data(), B.data(), C.data(), n, m, k, ts);
-
-    //print_matrix(C, n, m);
 
     assert(test_matrix_mul(n, m, k, A, B, C));
 

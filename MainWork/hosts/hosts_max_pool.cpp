@@ -62,6 +62,9 @@ std::vector<float> make_max_pool(CLVars& cl_vars) {
 
     int n = rand() % 1000 + 3, m = rand() % 1122 + 3;
 
+    std::cout << "max pooling" << std::endl;
+    std::cout << "n: " << n << " m: " << m << std::endl;
+
     int n1 = (n + (n & 1)) / 2;
     int m1 = (m + (m & 1)) / 2;
 

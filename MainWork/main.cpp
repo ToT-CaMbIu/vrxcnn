@@ -3,6 +3,7 @@
 #include "hosts/hosts_convolution.h"
 #include "hosts/hosts_matrix_mul.h"
 #include "hosts/hosts_max_pool.h"
+#include "hosts/hosts_test3d.h"
 
 #ifdef h5_debug
     #include "h5_helper.h"
@@ -15,14 +16,31 @@ int main (int argc, char **argv) {
 #else
     srand(time(nullptr));
 
-    CLVars cl_vars;
+    CLVars cl_vars_convolution;
+    CLVars cl_vars_max_pool;
+    CLVars cl_vars_matrix_mul;
+    CLVars cl_vars_test3d;
 
+    /*
     for(int i = 0; i < 100; ++i) {
-        make_max_pool(cl_vars);
-        cl_clean(cl_vars);
+        make_test3d(cl_vars_test3d);
+        cl_clean(cl_vars_test3d);
+    }
+    free(cl_vars_test3d.kernel_string);
+    */
+
+    for(int i = 0; i < 10; ++i) {
+        make_convolution(cl_vars_convolution);
+        cl_clean(cl_vars_convolution);
+        make_max_pool(cl_vars_max_pool);
+        cl_clean(cl_vars_max_pool);
+        make_matrix_mul(cl_vars_matrix_mul);
+        cl_clean(cl_vars_matrix_mul);
     }
 
-    free(cl_vars.kernel_string);
+    free(cl_vars_convolution.kernel_string);
+    free(cl_vars_max_pool.kernel_string);
+    free(cl_vars_matrix_mul.kernel_string);
 #endif
 
     return 0;

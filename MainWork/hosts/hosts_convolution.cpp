@@ -93,6 +93,11 @@ std::vector<float> make_convolution(CLVars& cl_vars) {
     //input parameters
     int n = rand() % 5000 + 1000, m = rand() % 5000 + 1000;
     int n1 = 5, m1 = 5;
+    int ts = 15;
+
+    std::cout << "convolution" << std::endl;
+    std::cout << "n: " << n << " m: " << m << " block_x: " <<
+        n1 << " block_y" << " ts: " << ts << std::endl;
 
     if(n < n1 || m < m1) {
         throw "Incorrect parameters of the kernel";
@@ -100,7 +105,6 @@ std::vector<float> make_convolution(CLVars& cl_vars) {
 
     int n2 = n - n1 + 1;
     int m2 = m - m1 + 1;
-    int ts = 15;
 
     std::vector<float> A(n * m);
     std::vector<float> Filter(n1 * m1);
