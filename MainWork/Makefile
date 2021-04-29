@@ -1,11 +1,11 @@
 exe_name = main
 
 h5_part = -I/usr/local/opt/szip/include\
--L/usr/local/Cellar/hdf5/1.12.0_1/lib \
-/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5_hl_cpp.a \
-/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5_cpp.a \
-/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5_hl.a \
-/usr/local/Cellar/hdf5/1.12.0_1/lib/libhdf5.a \
+-L/usr/local/Cellar/hdf5/1.12.0_3/lib \
+/usr/local/Cellar/hdf5/1.12.0_3/lib/libhdf5_hl_cpp.a \
+/usr/local/Cellar/hdf5/1.12.0_3/lib/libhdf5_cpp.a \
+/usr/local/Cellar/hdf5/1.12.0_3/lib/libhdf5_hl.a \
+/usr/local/Cellar/hdf5/1.12.0_3/lib/libhdf5.a \
 -L/usr/local/opt/szip/lib -lsz -lz -ldl -lm
 
 LAYERS_DIR = ./hosts

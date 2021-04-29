@@ -65,11 +65,11 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
 
     CL_CHECK(clFinish(cl_vars.command_queue));
 
-    clEnqueueReadBuffer(cl_vars.command_queue, C_cl, CL_TRUE, 0,
-                        n * m * sizeof(float), C, 0, nullptr, nullptr);
-
     auto time_end = std::chrono::high_resolution_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
+
+    clEnqueueReadBuffer(cl_vars.command_queue, C_cl, CL_TRUE, 0,
+                        n * m * sizeof(float), C, 0, nullptr, nullptr);
 
     std::cout << "kernels took " << elapsed << " ms to execute" << std::endl;
 

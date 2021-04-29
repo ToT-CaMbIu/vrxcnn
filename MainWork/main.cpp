@@ -18,16 +18,15 @@ int main (int argc, char **argv) {
 
     CLVars cl_vars_convolution;
     CLVars cl_vars_max_pool;
+    CLVars cl_vars_max_pool_3d;
     CLVars cl_vars_matrix_mul;
     CLVars cl_vars_test3d;
 
-    /*
-    for(int i = 0; i < 100; ++i) {
-        make_test3d(cl_vars_test3d);
-        cl_clean(cl_vars_test3d);
+    /*for(int i = 0; i < 10; ++i) {
+        make_max_pool_3d(cl_vars_max_pool_3d);
+        cl_clean(cl_vars_max_pool_3d);
     }
-    free(cl_vars_test3d.kernel_string);
-    */
+    free(cl_vars_max_pool_3d.kernel_string);*/
 
     for(int i = 0; i < 10; ++i) {
         make_convolution(cl_vars_convolution);

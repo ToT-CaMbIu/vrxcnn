@@ -72,12 +72,13 @@ void opencl_create_program_conv(CLVars& cl_vars,
 
     cl_vars.clStatus |= clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 2, nullptr,
                                                global_size, local_size, 0, nullptr, nullptr);
+    CL_CHECK(clFinish(cl_vars.command_queue));
+    
+    auto time_end = std::chrono::high_resolution_clock::now();
+    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
 
     cl_vars.clStatus |= clEnqueueReadBuffer(cl_vars.command_queue, C_cl, CL_TRUE, 0,
                                             n2 * m2 * sizeof(float), C, 0, nullptr, nullptr);
-
-    auto time_end = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
 
     std::cout << "kernels took " << elapsed << " ms to execute" << std::endl;
 
@@ -92,12 +93,12 @@ std::vector<float> make_convolution(CLVars& cl_vars) {
 
     //input parameters
     int n = rand() % 5000 + 1000, m = rand() % 5000 + 1000;
-    int n1 = 5, m1 = 5;
+    int n1 = 27, m1 = 27;
     int ts = 15;
 
     std::cout << "convolution" << std::endl;
     std::cout << "n: " << n << " m: " << m << " block_x: " <<
-        n1 << " block_y" << " ts: " << ts << std::endl;
+        n1 << " block_y " << m1 << " ts: " << ts << std::endl;
 
     if(n < n1 || m < m1) {
         throw "Incorrect parameters of the kernel";

@@ -38,11 +38,13 @@ void opencl_create_program_test3d(CLVars& cl_vars,
 
     CL_CHECK(clEnqueueNDRangeKernel(cl_vars.command_queue, cl_vars.kernel, 3, nullptr,
                                     global_size, local_size, 0, nullptr, nullptr));
-    CL_CHECK(clEnqueueReadBuffer(cl_vars.command_queue, C_cl, CL_TRUE, 0,
-                                 x * y * z * sizeof(float), C, 0, nullptr, nullptr));
+    CL_CHECK(clFinish(cl_vars.command_queue));
 
     auto time_end = std::chrono::high_resolution_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
+
+    CL_CHECK(clEnqueueReadBuffer(cl_vars.command_queue, C_cl, CL_TRUE, 0,
+                                 x * y * z * sizeof(float), C, 0, nullptr, nullptr));
 
     std::cout << "kernels took " << elapsed << " ms to execute" << std::endl;
 

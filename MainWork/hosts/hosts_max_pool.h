@@ -11,3 +11,11 @@ void opencl_create_program_max_pool(CLVars& cl_vars,
                                     int n, int m);
 
 std::vector<float> make_max_pool(CLVars& cl_vars);
+
+void opencl_create_program_max_pool_3d(CLVars& cl_vars,
+                                       const char* kernel_name,
+                                       float *A,
+                                       float *C,
+                                       int n, int m, int z);
+
+std::vector<float> make_max_pool_3d(CLVars& cl_vars);
