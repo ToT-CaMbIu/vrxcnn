@@ -23,6 +23,8 @@
 
 //OpenCl
 struct CLVars {
+    static size_t MAX_KERNELS_SIZE;
+
     cl_platform_id *platforms = nullptr;
     cl_uint num_platforms;
     cl_int clStatus;

@@ -1,17 +1,16 @@
 #pragma once
+#include "connected_libs.h"
 #include "hdf5.h"
 #include <H5Cpp.h>
-#include <vector>
-#include <iostream>
-#include <string>
-#include <optional>
 
-bool h5_test();
+bool h5_test_convolution();
+
+bool h5_test_bias();
 
 template<typename T, typename U>
-std::optional<std::vector<std::vector<std::vector<T>>>> get_weight_from_flatten_convolution(
-                                            std::vector<T>& weights,
-                                            std::pair<U,U> kernel_dims) {
+std::optional<std::vector<std::vector<std::vector<T>>>> get_weights_from_flatten_convolution(
+                                            const std::vector<T>& weights,
+                                            const std::pair<U,U> kernel_dims) {
 
     if(weights.size() % (kernel_dims.first * kernel_dims.second) != 0) {
         return std::nullopt;

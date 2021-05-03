@@ -1,7 +1,5 @@
 #include "hosts_max_pool.h"
 
-const static size_t MAX_MEMORY_SIZE = 1024;
-
 void opencl_create_program_max_pool(CLVars& cl_vars,
                                     const char* kernel_name,
                                     float *A,
@@ -118,19 +116,43 @@ void opencl_create_program_max_pool_3d(CLVars& cl_vars,
     clSetKernelArg(cl_vars.kernel, 1, sizeof(int), (void *) &m);
     clSetKernelArg(cl_vars.kernel, 2, sizeof(int), (void *) &nc);
     clSetKernelArg(cl_vars.kernel, 3, sizeof(int), (void *) &mc);
-    clSetKernelArg(cl_vars.kernel, 4, sizeof(int), (void *) &z);
-    clSetKernelArg(cl_vars.kernel, 5, sizeof(cl_mem), (void *) &A_cl);
-    clSetKernelArg(cl_vars.kernel, 6, sizeof(cl_mem), (void *) &C_cl);
+    clSetKernelArg(cl_vars.kernel, 4, sizeof(cl_mem), (void *) &A_cl);
+    clSetKernelArg(cl_vars.kernel, 5, sizeof(cl_mem), (void *) &C_cl);
 
     size_t global_size[3];
     size_t local_size[3];
 
-    global_size[0] = z;
-    global_size[1] = n;
-    global_size[2] = m;
     local_size[0] = 1;
     local_size[1] = 2;
     local_size[2] = 2;
+
+    /*int mx_memory_size = cl_vars.MAX_KERNELS_SIZE;
+
+    if(mx_memory_size % local_size[1] != 0) {
+        mx_memory_size -= mx_memory_size % local_size[1];
+    }
+    if(mx_memory_size % local_size[2] != 0) {
+        mx_memory_size -= mx_memory_size % local_size[2];
+    }
+
+    if(local_size[0] * local_size[1] > mx_memory_size) {
+        std::cerr << "Not enough kernels, please check your max kernels parameter!" << std::endl;
+        return;
+    }
+
+    size_t count_of_work_blocks = mx_memory_size / (local_size[1] * local_size[2]);
+    size_t needed_count_of_blocks = (n * m * z) / (local_size[1] * local_size[2]);
+
+    size_t work_per_thread = needed_count_of_blocks / count_of_work_blocks;
+
+    std::cout << "work_per_thread: " << work_per_thread << std::endl;*/
+
+    /*todo - поменять выполнение кернела под get_group_id, чтобы потом было легче работать
+        с work_per_thread*/
+
+    global_size[0] = z;
+    global_size[1] = n;
+    global_size[2] = m;
 
     auto time_start = std::chrono::high_resolution_clock::now();
 
@@ -154,7 +176,7 @@ std::vector<float> make_max_pool_3d(CLVars& cl_vars) {
 
     opencl_environment_definition(cl_vars, "kernels/kernel_max_pool_3d.cl");
 
-    int n = rand() % 4096 + 3, m = rand() % 4096 + 3, z = 64;
+    int n = rand() % 1000 + 3, m = rand() % 1000 + 3, z = 64;
 
     std::cout << "max pooling 3d" << std::endl;
     std::cout << "x: " << n << " y: " << m << " z: " << z << std::endl;

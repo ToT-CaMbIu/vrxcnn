@@ -103,8 +103,10 @@ bool test_convolution_valid(int n, int m,
                 }
             }
 
+            //std::cout << val << " ";
             isPassed &= float_compare(val, C[i * m2 + j], eps);
         }
+        //std::cout << std::endl;
     }
 
     auto time_end = std::chrono::high_resolution_clock::now();
@@ -159,7 +161,7 @@ bool test_max_pool(int n, int m,
     auto time_end = std::chrono::high_resolution_clock::now();
     double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
 
-    std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
+    //std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
 
     if(isPassed) {
         std::cout << "Passed!" << std::endl;

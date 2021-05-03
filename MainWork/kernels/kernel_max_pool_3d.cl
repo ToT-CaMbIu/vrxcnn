@@ -4,7 +4,6 @@ __kernel void matrix_max_pool_transformation_3d(int n,
                                                 int m,
                                                 int n1,
                                                 int m1,
-                                                int z,
                                                 const __global float* A,
                                                 __global float* C) {
 
@@ -14,18 +13,16 @@ __kernel void matrix_max_pool_transformation_3d(int n,
     const int globalX = get_global_id(1);
     const int globalY = get_global_id(2);
 
-    const int tx = globalX / 2;
-    const int ty = globalY / 2;
-    const int align_x = n / 2;
-    const int align_y = m / 2;
+    const int tx = globalX >> 1;
+    const int ty = globalY >> 1;
 
     __local float val[4];
 
-    if(globalZ < z && globalX < n1 && globalY < m1) {
-        val[localX * 2 + localY] = A[globalZ * n1 * m1 + globalX * m1 + globalY];
+    if(globalX < n1 && globalY < m1) {
+        val[(localX << 1) + localY] = A[globalZ * n1 * m1 + globalX * m1 + globalY];
     }
     else {
-        val[localX * 2 + localY] = -1e9;
+        val[(localX << 1) + localY] = -1e9;
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -39,5 +36,5 @@ __kernel void matrix_max_pool_transformation_3d(int n,
         }
     }
 
-    C[globalZ * align_x * align_y + tx * align_y + ty] = mx;
+    C[globalZ * (n >> 1) * (m >> 1) + tx * (m >> 1) + ty] = mx;
 }

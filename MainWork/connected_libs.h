@@ -18,5 +18,8 @@
 #include <vector>
 #include <iostream>
 #include <numeric>
+#include <string>
+#include <optional>
+#include <thread>
 
 //#define h5_debug
