@@ -3,12 +3,12 @@
 #include "hdf5.h"
 #include <H5Cpp.h>
 
-bool h5_test_convolution();
+std::optional<Tensor<float>> h5_test_convolution();
 
 bool h5_test_bias();
 
 template<typename T, typename U>
-std::optional<std::vector<std::vector<std::vector<T>>>> get_weights_from_flatten_convolution(
+std::optional<Tensor<T>> get_weights_from_flatten_convolution(
                                             const std::vector<T>& weights,
                                             const std::pair<U,U> kernel_dims) {
 
@@ -18,9 +18,9 @@ std::optional<std::vector<std::vector<std::vector<T>>>> get_weights_from_flatten
 
     size_t count_of_kernels = weights.size() / (kernel_dims.first * kernel_dims.second);
 
-    std::vector<std::vector<std::vector<T>>> weights_formatted;
+    Tensor<T> weights_formatted;
 
-    std::vector<std::vector<T>> current_kernel(kernel_dims.first, std::vector<T>(kernel_dims.second));
+    Image<T> current_kernel(kernel_dims.first, std::vector<T>(kernel_dims.second));
 
     for(size_t iter = 0; iter < count_of_kernels; ++iter) {
         int iter_align = iter;

@@ -18,4 +18,5 @@ void opencl_create_program_max_pool_3d(CLVars& cl_vars,
                                        float *C,
                                        int n, int m, int z);
 
-std::vector<float> make_max_pool_3d(CLVars& cl_vars);
+std::vector<float> make_max_pool_3d(CLVars& cl_vars,
+                                    const Tensor<float>& tensor);

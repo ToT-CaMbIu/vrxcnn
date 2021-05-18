@@ -72,6 +72,8 @@ std::vector<float> make_test3d(CLVars& cl_vars) {
     opencl_create_program_test3d(cl_vars, "test3d",
                                    A.data(), C.data(), x, y, z);
 
+    print_matrix(C, x, y);
+
     std::cout << ((A == C) ? "Passed!" : "Failed!") << std::endl;
 
     return C;

@@ -225,24 +225,22 @@ void opencl_create_program_conv_3d(CLVars& cl_vars,
     clReleaseMemObject(C_cl);
 }
 
-std::vector<float> make_convolution_3d(CLVars& cl_vars) {
+Tensor<float> make_convolution_3d(CLVars& cl_vars,
+                                  const Tensor<float>& tensor,
+                                  const Tensor<float>& filters) {
 
     opencl_environment_definition(cl_vars, "kernels/kernel_conv_3d.cl");
 
-    //input parameters
-    int n = rand() % 500 + 100, m = rand() % 500 + 100, z = 32, count_of_weights = 64;
-    int n1 = 20, m1 = 20;
+    int n = tensor[0].size(), m = tensor[0][0].size(), z = tensor.size(),
+        count_of_weights = filters.size();
+    int n1 = filters[0].size(), m1 = filters[0][0].size();
     int ts = 15;
-
-    /*int n = 4, m = 4, z = 5, count_of_weights = 10;
-    int n1 = 3, m1 = 3;
-    int ts = 2;*/
 
     std::cout << "convolution" << std::endl;
     std::cout << "n: " << n << " m: " << m << " block_x: " <<
               n1 << " block_y " << m1 << " ts: " << ts << " z: " << z << std::endl;
 
-    if(n < n1 || m < m1 || count_of_weights % z != 0) {
+    if(n <= 0 || m <= 0 || z <= 0 || n < n1 || m < m1 || count_of_weights % z != 0) {
         throw "Incorrect parameters of the kernel";
     }
 
@@ -258,7 +256,7 @@ std::vector<float> make_convolution_3d(CLVars& cl_vars) {
     for(int k = 0; k < z; ++k) {
         for (size_t i = 0; i < n; i++) {
             for (size_t j = 0; j < m; ++j) {
-                A[k * n * m + i * m + j] = 3.1 * (float)(rand() % 3 + 1);;
+                A[k * n * m + i * m + j] = tensor[k][i][j];
             }
         }
     }
@@ -266,7 +264,7 @@ std::vector<float> make_convolution_3d(CLVars& cl_vars) {
     for(int k = 0; k < count_of_weights; ++k) {
         for (size_t i = 0; i < n1; i++) {
             for (size_t j = 0; j < m1; ++j) {
-                Filter[k * n1 * m1 + i * m1 + j] = 2.3 * (float)(rand() % 3 + 1);;
+                Filter[k * n1 * m1 + i * m1 + j] = filters[k][i][j];
             }
         }
     }
@@ -279,6 +277,10 @@ std::vector<float> make_convolution_3d(CLVars& cl_vars) {
     std::vector<float> Filter_copy(n1 * m1);
     std::vector<float> C_copy(n2 * m2);
 
+    double elapsed = 0.0;
+
+    Tensor<float> result(count_of_weights);
+
     for(int k = 0; k < count_of_weights; ++k) {
         std::copy(A.begin() + (k / weights_per_matrix) * n * m,
                   A.begin() + (k / weights_per_matrix + 1) * n * m, A_copy.begin());
@@ -286,12 +288,23 @@ std::vector<float> make_convolution_3d(CLVars& cl_vars) {
                   Filter_copy.begin());
         std::copy(C.begin() + k * n2 * m2, C.begin() + (k + 1) * n2 * m2, C_copy.begin());
 
-        /*print_matrix(A_copy, n, m);
-        print_matrix(Filter_copy, n1, m1);
-        print_matrix(C_copy, n2, m2);*/
-
+        auto time_start = std::chrono::high_resolution_clock::now();
         assert(test_convolution_valid(n, m, n1, m1, n2, m2, A_copy, Filter_copy, C_copy));
+        auto time_end = std::chrono::high_resolution_clock::now();
+        elapsed += std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
+
+        Image<float> C_image(n2, std::vector<float>(m2));
+
+        for(int i = 0; i < n2; ++i) {
+            for(int j = 0; j < m2; ++j) {
+                C_image[i][j] = C_copy[i * m2 + j];
+            }
+        }
+
+        result[k] = std::move(C_image);
     }
 
-    return C;
+    std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
+
+    return result;
 }

@@ -4,7 +4,7 @@
 #include "utils.h"
 
 //C
-void store_image(float *imageOut,
+void store_image(std::vector<float> imageOut,
                  const char *filename,
                  int cols,
                  const char* refFilename) {
@@ -76,9 +76,9 @@ void store_image(float *imageOut,
     free(buffer);
 }
 
-float* read_image(const char *filename,
-                  int* widthOut,
-                  int* heightOut) {
+std::vector<float> read_image(const char *filename,
+                  int& widthOut,
+                  int& heightOut) {
 
     char* imageData;
 
@@ -104,8 +104,8 @@ float* read_image(const char *filename,
     printf("width = %d\n", width);
     printf("height = %d\n", height);
 
-    *widthOut = width;
-    *heightOut = height;
+    widthOut = width;
+    heightOut = height;
 
     imageData = (char*)malloc(width*height);
     if(imageData == NULL) {
@@ -146,12 +146,7 @@ float* read_image(const char *filename,
 
     fclose(fp);
 
-    float* floatImage = NULL;
-    floatImage = (float*)malloc(sizeof(float)*width*height);
-    if(floatImage == NULL) {
-        perror("malloc");
-        exit(-1);
-    }
+    std::vector<float> floatImage(height * width);
 
     for(i = 0; i < height; i++) {
         for(j = 0; j < width; j++) {

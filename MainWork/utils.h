@@ -5,9 +5,9 @@
 #include <optional>
 #include <math.h>
 
-float* read_image(const char *filename,
-                  int* widthOut,
-                  int* heightOut);
+std::vector<float> read_image(const char *filename,
+                  int& widthOut,
+                  int& heightOut);
 
 void store_image(float *imageOut,
                  const char *filename,
@@ -90,8 +90,6 @@ bool test_convolution_valid(int n, int m,
                             const std::vector<T>& C,
                             float eps = 1e-7) {
 
-    auto time_start = std::chrono::high_resolution_clock::now();
-
     bool isPassed = true;
     for (size_t i = 0; i < n2; ++i) {
         for(size_t j = 0; j < m2; ++j) {
@@ -109,11 +107,6 @@ bool test_convolution_valid(int n, int m,
         //std::cout << std::endl;
     }
 
-    auto time_end = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
-
-    std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
-
     if(isPassed) {
         std::cout << "Passed!" << std::endl;
     }
@@ -130,8 +123,6 @@ bool test_max_pool(int n, int m,
                    const std::vector<T>& A,
                    const std::vector<T>& C,
                    float eps = 1e-7) {
-
-    auto time_start = std::chrono::high_resolution_clock::now();
 
     bool isPassed = true;
     for (size_t i = 0; i < n1; ++i) {
@@ -157,11 +148,6 @@ bool test_max_pool(int n, int m,
             isPassed &= float_compare(C[i * m1 + j], a1, eps);
         }
     }
-
-    auto time_end = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
-
-    //std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
 
     if(isPassed) {
         std::cout << "Passed!" << std::endl;

@@ -32,4 +32,6 @@ void opencl_create_program_conv_3d(CLVars& cl_vars,
                                    int blocks_counter_row,
                                    int z, int count_of_weights);
 
-std::vector<float> make_convolution_3d(CLVars& cl_vars);
+Tensor<float> make_convolution_3d(CLVars& cl_vars,
+                                  const Tensor<float>& tensor,
+                                  const Tensor<float>& filters);

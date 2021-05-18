@@ -9,7 +9,7 @@ h5_part = -I/usr/local/opt/szip/include\
 -L/usr/local/opt/szip/lib -lsz -lz -ldl -lm
 
 LAYERS_DIR = ./hosts
-SRCS = utils.cpp main.cpp opencl_environment.cpp $(LAYERS_DIR)/*.cpp
+SRCS = utils.cpp main.cpp opencl_environment.cpp models.cpp $(LAYERS_DIR)/*.cpp
 
 all: cpp
 
