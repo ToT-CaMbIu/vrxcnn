@@ -1,10 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "utils.h"
 
 //C
-void store_image(std::vector<float> imageOut,
+void store_image(std::vector<float>& imageOut,
                  const char *filename,
                  int cols,
                  const char* refFilename) {
@@ -80,10 +77,10 @@ std::vector<float> read_image(const char *filename,
                   int& widthOut,
                   int& heightOut) {
 
-    char* imageData;
+    unsigned char* imageData;
 
     int height, width;
-    char tmp;
+    unsigned char tmp;
     int offset;
     int i, j;
 
@@ -107,7 +104,7 @@ std::vector<float> read_image(const char *filename,
     widthOut = width;
     heightOut = height;
 
-    imageData = (char*)malloc(width*height);
+    imageData = (unsigned char*)malloc(width*height);
     if(imageData == NULL) {
         perror("malloc");
         exit(-1);
@@ -122,7 +119,6 @@ std::vector<float> read_image(const char *filename,
     }
 
     for(i = 0; i < height; i++) {
-
 
         for(j = 0; j < width; j++) {
             fread(&tmp, sizeof(char), 1, fp);
@@ -146,7 +142,12 @@ std::vector<float> read_image(const char *filename,
 
     fclose(fp);
 
-    std::vector<float> floatImage(height * width);
+    float* floatImage = NULL;
+    floatImage = (float*)malloc(sizeof(float)*width*height);
+    if(floatImage == NULL) {
+        perror("malloc");
+        exit(-1);
+    }
 
     for(i = 0; i < height; i++) {
         for(j = 0; j < width; j++) {
@@ -155,7 +156,14 @@ std::vector<float> read_image(const char *filename,
     }
 
     free(imageData);
-    return floatImage;
+
+    std::vector<float> result(height * width);
+
+    for(size_t i = 0; i < height * width; ++i) {
+        result[i] = floatImage[i];
+    }
+
+    return result;
 }
 
 char* read_kernel_from_file(const char* kernelPath) {
@@ -231,13 +239,25 @@ bool float_compare(float lhs,
     return fabs(lhs - rhs) <= eps;
 }
 
-float bin_pow(float num, uint32_t power) {
-    if(power <= 0) {
-        return 1;
+void softmax(std::vector<float>& input) {
+    int size = input.size();
+    int i;
+    float m, sum, constant;
+
+    m = -INFINITY;
+    for (i = 0; i < size; ++i) {
+        if (m < input[i]) {
+            m = input[i];
+        }
     }
-    if(power & 1) {
-        return num * bin_pow(num, power - 1);
+
+    sum = 0.0;
+    for (i = 0; i < size; ++i) {
+        sum += exp(input[i] - m);
     }
-    float result = bin_pow(num, power >> 1);
-    return result * result;
+
+    constant = m + log(sum);
+    for (i = 0; i < size; ++i) {
+        input[i] = exp(input[i] - constant);
+    }
 }

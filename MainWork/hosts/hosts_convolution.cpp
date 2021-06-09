@@ -126,15 +126,15 @@ std::vector<float> make_convolution(CLVars& cl_vars) {
     opencl_create_program_conv(cl_vars, "matrix_convolutional_transformation", A.data(),
                                Filter.data(), C.data(), n, m, n1, m1, n2, m2, n1 * m1, n2 * m2, ts, m2);
 
-    assert(test_convolution_valid(n, m, n1, m1, n2, m2, A, Filter, C));
+    assert(test_convolution_valid(n, m, n1, m1, n2, m2, A, Filter, C, 0.0f));
 
     return C;
 }
 
 void opencl_create_program_conv_3d(CLVars& cl_vars,
                                    const char* kernel_name,
-                                   float *A,
-                                   float *Filter,
+                                   const float *A,
+                                   const float *Filter,
                                    float *C,
                                    int n, int m,
                                    int n1, int m1,
@@ -227,18 +227,19 @@ void opencl_create_program_conv_3d(CLVars& cl_vars,
 
 Tensor<float> make_convolution_3d(CLVars& cl_vars,
                                   const Tensor<float>& tensor,
-                                  const Tensor<float>& filters) {
+                                  const Tensor<float>& filters,
+                                  const std::vector<float>& bias,
+                                  std::function<float(float num)> activation) {
 
     opencl_environment_definition(cl_vars, "kernels/kernel_conv_3d.cl");
 
-    int n = tensor[0].size(), m = tensor[0][0].size(), z = tensor.size(),
-        count_of_weights = filters.size();
-    int n1 = filters[0].size(), m1 = filters[0][0].size();
+    int n = tensor.get_x(), m = tensor.get_y(), z = tensor.get_z(),
+        count_of_weights = filters.get_z();
+    int n1 = filters.get_x(), m1 = filters.get_y();
     int ts = 15;
 
-    std::cout << "convolution" << std::endl;
-    std::cout << "n: " << n << " m: " << m << " block_x: " <<
-              n1 << " block_y " << m1 << " ts: " << ts << " z: " << z << std::endl;
+    std::cout << "convolution input" << std::endl;
+    std::cout << "n: " << n << " m: " << m << " z: " << z << " weightsZ: " << count_of_weights << std::endl;
 
     if(n <= 0 || m <= 0 || z <= 0 || n < n1 || m < m1 || count_of_weights % z != 0) {
         throw "Incorrect parameters of the kernel";
@@ -249,37 +250,27 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
     int n2 = n - n1 + 1;
     int m2 = m - m1 + 1;
 
-    std::vector<float> A(z * n * m);
-    std::vector<float> Filter(count_of_weights * n1 * m1);
+    std::vector<float> A = tensor.get_data();
+    std::vector<float> Filter = filters.get_data();
     std::vector<float> C(count_of_weights * n2 * m2);
-
-    for(int k = 0; k < z; ++k) {
-        for (size_t i = 0; i < n; i++) {
-            for (size_t j = 0; j < m; ++j) {
-                A[k * n * m + i * m + j] = tensor[k][i][j];
-            }
-        }
-    }
-
-    for(int k = 0; k < count_of_weights; ++k) {
-        for (size_t i = 0; i < n1; i++) {
-            for (size_t j = 0; j < m1; ++j) {
-                Filter[k * n1 * m1 + i * m1 + j] = filters[k][i][j];
-            }
-        }
-    }
 
     opencl_create_program_conv_3d(cl_vars, "matrix_convolutional_transformation", A.data(),
                                   Filter.data(), C.data(), n, m, n1, m1, n2, m2,
                                   n1 * m1, n2 * m2, ts, m2, z, count_of_weights);
+
+    auto result = Tensor(count_of_weights, n2, m2, C);
+
+    auto result_optional = result.tensor_collapse(z, bias, activation);
+
+    if(!result_optional.has_value()) {
+        throw "Convolution error!";
+    }
 
     std::vector<float> A_copy(n * m);
     std::vector<float> Filter_copy(n1 * m1);
     std::vector<float> C_copy(n2 * m2);
 
     double elapsed = 0.0;
-
-    Tensor<float> result(count_of_weights);
 
     for(int k = 0; k < count_of_weights; ++k) {
         std::copy(A.begin() + (k / weights_per_matrix) * n * m,
@@ -288,23 +279,23 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
                   Filter_copy.begin());
         std::copy(C.begin() + k * n2 * m2, C.begin() + (k + 1) * n2 * m2, C_copy.begin());
 
+#ifndef h5_debug
+        print_matrix(A_copy, n, m);
+        print_matrix(Filter_copy, n1, m1);
+        print_matrix(C_copy, n2, m2);
+        std::cout << "-------------" << std::endl;
+#endif
         auto time_start = std::chrono::high_resolution_clock::now();
         assert(test_convolution_valid(n, m, n1, m1, n2, m2, A_copy, Filter_copy, C_copy));
         auto time_end = std::chrono::high_resolution_clock::now();
         elapsed += std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
-
-        Image<float> C_image(n2, std::vector<float>(m2));
-
-        for(int i = 0; i < n2; ++i) {
-            for(int j = 0; j < m2; ++j) {
-                C_image[i][j] = C_copy[i * m2 + j];
-            }
-        }
-
-        result[k] = std::move(C_image);
     }
 
     std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
 
-    return result;
+    std::cout << "convolution output" << std::endl;
+    std::cout << "n: " << result_optional.value().get_x() << " m: " <<
+        result_optional.value().get_y() << " z: " << result_optional.value().get_z() << std::endl;
+
+    return result_optional.value();
 }

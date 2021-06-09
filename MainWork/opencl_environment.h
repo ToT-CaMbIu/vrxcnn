@@ -1,6 +1,7 @@
 #pragma once
 
 #include "connected_libs.h"
+#include "utils.h"
 
 #define CL_CHECK(_expr)                                                \
    do {                                                                \

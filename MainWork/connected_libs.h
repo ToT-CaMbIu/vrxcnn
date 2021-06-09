@@ -22,10 +22,4 @@
 #include <optional>
 #include <thread>
 
-template<typename T>
-using Tensor = std::vector<std::vector<std::vector<T>>>;
-
-template<typename T>
-using Image = std::vector<std::vector<T>>;
-
 #define h5_debug

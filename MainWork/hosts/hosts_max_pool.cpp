@@ -153,12 +153,12 @@ void opencl_create_program_max_pool_3d(CLVars& cl_vars,
     clReleaseMemObject(C_cl);
 }
 
-std::vector<float> make_max_pool_3d(CLVars& cl_vars,
-                                    const Tensor<float>& tensor) {
+Tensor<float> make_max_pool_3d(CLVars& cl_vars,
+                               const Tensor<float>& tensor) {
 
     opencl_environment_definition(cl_vars, "kernels/kernel_max_pool_3d.cl");
 
-    int n = tensor[0].size(), m = tensor[0][0].size(), z = tensor.size();
+    int n = tensor.get_x(), m = tensor.get_y(), z = tensor.get_z();
 
     std::cout << "max pooling 3d" << std::endl;
     std::cout << "x: " << n << " y: " << m << " z: " << z << std::endl;
@@ -166,16 +166,8 @@ std::vector<float> make_max_pool_3d(CLVars& cl_vars,
     int n1 = (n + (n & 1)) / 2;
     int m1 = (m + (m & 1)) / 2;
 
-    std::vector<float> A(z * n * m);
+    std::vector<float> A = tensor.get_data();
     std::vector<float> C(z * n1 * m1);
-
-    for(int k = 0; k < z; ++k) {
-        for (size_t i = 0; i < n; ++i) {
-            for (size_t j = 0; j < m; ++j) {
-                A[k * n * m + i * m + j] = rand() % 200 + 12.6 / (11.3 + rand() % 200);
-            }
-        }
-    }
 
     opencl_create_program_max_pool_3d(cl_vars, "matrix_max_pool_transformation_3d",
                                       A.data(), C.data(), n, m, z);
@@ -197,5 +189,7 @@ std::vector<float> make_max_pool_3d(CLVars& cl_vars,
 
     std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
 
-    return C;
+    std::cout << "n: " << n1 << " m1: " << m1 << std::endl;
+
+    return Tensor(z, n1, m1, std::move(C));
 }

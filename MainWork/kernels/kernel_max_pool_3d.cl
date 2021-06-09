@@ -28,7 +28,7 @@ __kernel void matrix_max_pool_transformation_3d(int z,
         if (globalX < n1 && globalY < m1) {
             val[(localX << 1) + localY] = A[current_z * n1 * m1 + globalX * m1 + globalY];
         } else {
-            val[(localX << 1) + localY] = -1e9;
+            val[(localX << 1) + localY] = 0.0f;
         }
 
         barrier(CLK_LOCAL_MEM_FENCE);

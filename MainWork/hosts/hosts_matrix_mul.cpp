@@ -78,35 +78,37 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
     clReleaseMemObject(C_cl);
 }
 
-std::vector<float> make_matrix_mul(CLVars& cl_vars) {
+std::vector<float> make_matrix_mul(CLVars& cl_vars,
+                                   const std::vector<std::vector<float>>& A,
+                                   const std::vector<std::vector<float>>& B) {
 
     opencl_environment_definition(cl_vars, "kernels/kernel_matrix_mul.cl");
 
-    int n = rand() % 1000 + 100, m = rand() % 1000 + 100, k = rand() % 1000 + 100, ts = 15;
+    int n = A.size(), m = B[0].size(), k = A[0].size(), ts = 15;
 
     std::cout << "matrix multiplication" << std::endl;
     std::cout << "n: " << n << " m: " << m << " k: " << k << " ts: " << ts << std::endl;
 
-    std::vector<float> A(n * k);
-    std::vector<float> B(k * m);
+    std::vector<float> A_copy(n * k);
+    std::vector<float> B_copy(k * m);
     std::vector<float> C(n * m);
 
     for (size_t i = 0; i < n; i++) {
         for(size_t j = 0; j < k; ++j) {
-            A[i * k + j] = 3.1 * (float)(rand() % 3 + 1);
+            A_copy[i * k + j] = A[i][j];
         }
     }
 
     for (size_t i = 0; i < k; i++) {
         for(size_t j = 0; j < m; ++j) {
-            B[i * m + j] = 3.3 * (float)(rand() % 3 + 1);
+            B_copy[i * m + j] = B[i][j];
         }
     }
 
     opencl_create_program_matrix_mul(cl_vars, "matrix_mul",
-                                     A.data(), B.data(), C.data(), n, m, k, ts);
+                                     A_copy.data(), B_copy.data(), C.data(), n, m, k, ts);
 
-    assert(test_matrix_mul(n, m, k, A, B, C));
+    assert(test_matrix_mul(n, m, k, A_copy, B_copy, C));
 
     return C;
 }

@@ -1,5 +1,4 @@
 #include "opencl_environment.h"
-#include "utils.h"
 
 void cl_clean(CLVars& cl_vars) {
     if(cl_vars.device != nullptr) {

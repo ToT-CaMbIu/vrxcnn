@@ -2,6 +2,7 @@
 
 #include "../connected_libs.h"
 #include "../utils.h"
+#include "../models.h"
 #include "../opencl_environment.h"
 
 void opencl_create_program_max_pool(CLVars& cl_vars,
@@ -18,5 +19,5 @@ void opencl_create_program_max_pool_3d(CLVars& cl_vars,
                                        float *C,
                                        int n, int m, int z);
 
-std::vector<float> make_max_pool_3d(CLVars& cl_vars,
-                                    const Tensor<float>& tensor);
+Tensor<float> make_max_pool_3d(CLVars& cl_vars,
+                               const Tensor<float>& tensor);

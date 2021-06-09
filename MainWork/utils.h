@@ -4,12 +4,14 @@
 #include <iostream>
 #include <optional>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 std::vector<float> read_image(const char *filename,
                   int& widthOut,
                   int& heightOut);
 
-void store_image(float *imageOut,
+void store_image(std::vector<float>& imageOut,
                  const char *filename,
                  int cols,
                  const char* refFilename);
@@ -24,15 +26,27 @@ bool float_compare(float lhs,
                    float rhs,
                    float eps);
 
-float bin_pow(float num, uint32_t power);
+void softmax(std::vector<float>& input);
 
 template<typename T>
 void print_matrix(const std::vector<T>& matrix,
-                  int n,
-                  int m) {
+                  int n, int m) {
     for(size_t i = 0; i < n; ++i) {
         for(size_t j = 0; j < m; ++j) {
             std::cout << matrix[i * m + j] << (j == m - 1 ? '\n' : ' ');
+        }
+    }
+}
+
+template<typename T>
+void print_tensor(const std::vector<T>& tensor,
+                  int n, int m, int z) {
+    for(size_t k = 0; k < z; ++k) {
+        std::cout << "z: " << k  << std::endl;
+        for (size_t i = 0; i < n; ++i) {
+            for (size_t j = 0; j < m; ++j) {
+                std::cout << tensor[k * n * m + i * m + j] << (j == m - 1 ? '\n' : ' ');
+            }
         }
     }
 }
@@ -93,7 +107,7 @@ bool test_convolution_valid(int n, int m,
     bool isPassed = true;
     for (size_t i = 0; i < n2; ++i) {
         for(size_t j = 0; j < m2; ++j) {
-            float val = 0;
+            float val = 0.0f;
 
             for(size_t i1 = 0; i1 < n1; ++i1) {
                 for(size_t j1 = 0; j1 < m1; ++j1) {
@@ -101,10 +115,9 @@ bool test_convolution_valid(int n, int m,
                 }
             }
 
-            //std::cout << val << " ";
             isPassed &= float_compare(val, C[i * m2 + j], eps);
+
         }
-        //std::cout << std::endl;
     }
 
     if(isPassed) {
@@ -122,12 +135,12 @@ bool test_max_pool(int n, int m,
                    int n1, int m1,
                    const std::vector<T>& A,
                    const std::vector<T>& C,
-                   float eps = 1e-7) {
+                   float eps = 1e-6) {
 
     bool isPassed = true;
     for (size_t i = 0; i < n1; ++i) {
         for(size_t j = 0; j < m1; ++j) {
-            float a1 = -1e9,a2 = -1e9,a3 = -1e9,a4 = -1e9;
+            float a1 = 0.0f,a2 = 0.0f,a3 = 0.0f,a4 = 0.0f;
             if(i * 2 < n && j * 2 < m) {
                 a1 = A[i * 2 * m + j * 2];
             }
@@ -165,9 +178,7 @@ bool test_matrix_mul(int n, int m,
                      const std::vector<T>& A,
                      const std::vector<T>& B,
                      const std::vector<T>& C,
-                     float eps = 1e-7) {
-
-    auto time_start = std::chrono::high_resolution_clock::now();
+                     float eps = 1e-6) {
 
     bool isPassed = true;
     for(size_t i = 0; i < n; ++i) {
@@ -177,13 +188,12 @@ bool test_matrix_mul(int n, int m,
                 val += A[i * k + p] * B[p * m + j];
             }
             isPassed &= float_compare(val, C[i * m + j], eps);
+            if(!float_compare(val, C[i * m + j], eps)) {
+                std::cout << i << " " << j << " " << k << std::endl;
+                std::cout << val << " " << C[i * m + j] << std::endl;
+            }
         }
     }
-
-    auto time_end = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
-
-    std::cout << "cpu took " << elapsed << " ms to execute" << std::endl;
 
     if(isPassed) {
         std::cout << "Passed!" << std::endl;

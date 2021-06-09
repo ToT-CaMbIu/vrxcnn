@@ -2,6 +2,7 @@
 
 #include "../connected_libs.h"
 #include "../utils.h"
+#include "../models.h"
 #include "../opencl_environment.h"
 
 
@@ -21,8 +22,9 @@ std::vector<float> make_convolution(CLVars& cl_vars);
 
 void opencl_create_program_conv_3d(CLVars& cl_vars,
                                    const char* kernel_name,
-                                   float *A,
-                                   float *Filter,
+                                   const float *A,
+                                   const float *Filter,
+                                   const float *Bias,
                                    float *C,
                                    int n, int m,
                                    int n1, int m1,
@@ -34,4 +36,6 @@ void opencl_create_program_conv_3d(CLVars& cl_vars,
 
 Tensor<float> make_convolution_3d(CLVars& cl_vars,
                                   const Tensor<float>& tensor,
-                                  const Tensor<float>& filters);
+                                  const Tensor<float>& filters,
+                                  const std::vector<float>& bias,
+                                  std::function<float(float num)> activation);

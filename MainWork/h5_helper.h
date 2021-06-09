@@ -1,74 +1,169 @@
 #pragma once
 #include "connected_libs.h"
+#include "models.h"
 #include "hdf5.h"
 #include <H5Cpp.h>
 
-std::optional<Tensor<float>> h5_test_convolution();
+template<typename T>
+class H5Helper
+{
+private:
 
-bool h5_test_bias();
+    /*template<typename U>
+    std::optional<Tensor<T>> get_weights_from_flatten_convolution(const std::vector<T>& weights,
+                                                                  const std::vector<U>& dims) {
 
-template<typename T, typename U>
-std::optional<Tensor<T>> get_weights_from_flatten_convolution(
-                                            const std::vector<T>& weights,
-                                            const std::pair<U,U> kernel_dims) {
+        if(weights.size() % (dims[0] * dims[1]) != 0) {
+            return std::nullopt;
+        }
 
-    if(weights.size() % (kernel_dims.first * kernel_dims.second) != 0) {
-        return std::nullopt;
-    }
+        size_t count_of_kernels = weights.size() / (dims[0] * dims[1]);
 
-    size_t count_of_kernels = weights.size() / (kernel_dims.first * kernel_dims.second);
+        Tensor<T> weights_formatted(dims[0], dims[1]);
 
-    Tensor<T> weights_formatted;
+        std::vector<std::vector<T>> current_kernel(dims[0], std::vector<T>(dims[1]));
 
-    Image<T> current_kernel(kernel_dims.first, std::vector<T>(kernel_dims.second));
+        for(size_t z = 0; z < dims[2]; ++z) {
+            for (size_t iter = 0; iter < dims[3]; ++iter) {
+                int iter_align = iter;
 
-    for(size_t iter = 0; iter < count_of_kernels; ++iter) {
-        int iter_align = iter;
+                for (size_t x = 0; x < dims[0]; ++x) {
+                    for (size_t y = 0; y < dims[1]; ++y) {
+                        current_kernel[x][y] = weights[iter_align];
+                        iter_align += dims[3];
+                    }
+                }
 
-        for(size_t x = 0; x < kernel_dims.first; ++x) {
-            for(size_t y = 0; y < kernel_dims.second; ++y) {
-                current_kernel[x][y] = weights[iter_align];
-                iter_align += count_of_kernels;
+                weights_formatted.add_kernel(current_kernel);
             }
         }
 
-        weights_formatted.push_back(current_kernel);
+        return weights_formatted;
+    }*/
+
+    template<typename U>
+    std::optional<Tensor<T>> get_weights_from_flatten_convolution(const std::vector<T>& weights,
+                                                                  const std::pair<U,U> kernel_dims) {
+
+        if(weights.size() % (kernel_dims.first * kernel_dims.second) != 0) {
+            return std::nullopt;
+        }
+
+        size_t count_of_kernels = weights.size() / (kernel_dims.first * kernel_dims.second);
+
+        Tensor<T> weights_formatted(kernel_dims.first, kernel_dims.second);
+        std::vector<std::vector<T>> current_kernel(kernel_dims.first, std::vector<T>(kernel_dims.second));
+
+        for(size_t iter = 0; iter < count_of_kernels; ++iter) {
+            int iter_align = iter;
+
+            for(size_t x = 0; x < kernel_dims.first; ++x) {
+                for(size_t y = 0; y < kernel_dims.second; ++y) {
+                    current_kernel[x][y] = weights[iter_align];
+                    iter_align += count_of_kernels;
+                }
+            }
+
+            weights_formatted.add_kernel(current_kernel);
+        }
+
+        return weights_formatted;
     }
 
-    return weights_formatted;
-}
+    template<typename U>
+    std::optional<std::vector<std::vector<T>>> get_weights_from_flatten_dense(const std::vector<T>& weights,
+                                                                              const std::pair<U,U> dims) {
 
-template<typename T>
-std::optional<std::vector<float>> read_weights_from_file(const std::string& path,
-                                                         const std::string& layer,
-                                                         const std::vector<T>& dimensions) {
+        if(weights.size() != dims.first * dims.second) {
+            return std::nullopt;
+        }
 
-    const int numDims = dimensions.size();
+        std::vector<std::vector<T>> weights_formatted(dims.first, std::vector<T>(dims.second));
 
-    if(numDims <= 0) {
+        size_t iter_dense = 0;
+        for(size_t i = 0; i < dims.first; ++i) {
+            for(size_t j = 0; j < dims.second; ++j) {
+                weights_formatted[i][j] = weights[iter_dense++];
+            }
+        }
+
+        return weights_formatted;
+    }
+
+public:
+    template<typename U1, typename U2>
+    std::optional<std::vector<T>> read_weights_from_file(U1&& path, U2&& layer,
+                                                         const std::vector<size_t>& dimensions,
+                                                         H5::PredType type = H5::PredType::NATIVE_FLOAT) {
+
+        const int numDims = dimensions.size();
+
+        if(numDims <= 0) {
+            return std::nullopt;
+        }
+
+        try {
+            H5::H5File file(std::forward<std::string>(path).c_str(), H5F_ACC_RDONLY);
+            H5::DataSet dataSet = file.openDataSet(std::forward<std::string>(layer));
+            H5::DataSpace dataSpace = dataSet.getSpace();
+
+            hsize_t dims[numDims];
+            dataSpace.getSimpleExtentDims(dims, nullptr);
+
+            H5::DataSpace memSpace(numDims, dims);
+
+            size_t sz = std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<size_t>());
+            std::vector<T> weights(sz);
+
+            dataSet.read(weights.data(), type, memSpace, dataSpace);
+
+            return weights;
+        }
+        catch (...) {
+            return std::nullopt;
+        }
+
         return std::nullopt;
     }
 
-    try {
-        H5::H5File file(path.c_str(), H5F_ACC_RDONLY);
-        H5::DataSet dataSet = file.openDataSet(layer);
-        H5::DataSpace dataSpace = dataSet.getSpace();
+    template<typename U1, typename U2>
+    std::optional<Tensor<T>> h5_convolution_wrapper(U1&& path, U2&& layer,
+                                                    const std::vector<size_t>& dims) {
 
-        hsize_t dims[numDims];
-        dataSpace.getSimpleExtentDims(dims, nullptr);
+        auto t = read_weights_from_file(std::forward<std::string>(path),
+                                        std::forward<std::string>(layer), dims);
 
-        H5::DataSpace memSpace(numDims, dims);
+        if(t.has_value()) {
+            auto weights = get_weights_from_flatten_convolution(t.value(), std::make_pair(dims[0],dims[1]));
 
-        size_t sz = std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<int>());
-        std::vector<float> weights(sz);
+            if(!weights.has_value()) {
+                return std::nullopt;
+            }
 
-        dataSet.read(weights.data(), H5::PredType::NATIVE_FLOAT, memSpace, dataSpace);
+            return weights.value();
+        }
 
-        return weights;
-    }
-    catch (...) {
         return std::nullopt;
     }
 
-    return std::nullopt;
-}
+    template<typename U1, typename U2>
+    std::optional<std::vector<std::vector<T>>> h5_dense_wrapper(U1&& path, U2&& layer,
+                                                                const std::vector<size_t>& dims) {
+
+        auto t = read_weights_from_file(std::forward<std::string>(path),
+                                        std::forward<std::string>(layer),
+                                        dims);
+
+        if(t.has_value()) {
+            auto weights = get_weights_from_flatten_dense(t.value(), std::make_pair(dims[0], dims[1]));
+
+            if(!weights.has_value()) {
+                return std::nullopt;
+            }
+
+            return weights.value();
+        }
+
+        return std::nullopt;
+    }
+};
