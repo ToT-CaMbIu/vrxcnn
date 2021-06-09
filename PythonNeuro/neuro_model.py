@@ -17,12 +17,9 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 model = keras.Sequential(
     [
         keras.Input(shape=input_shape),
-        layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
         layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.MaxPooling2D(pool_size=(2, 2), padding="same"),
         layers.Flatten(),
-        layers.Dropout(0.5),
         layers.Dense(num_classes, activation="softmax"),
     ]
 )
@@ -30,7 +27,7 @@ model = keras.Sequential(
 model.summary()
 
 batch_size = 128
-epochs = 20
+epochs = 10
 
 model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
@@ -40,6 +37,7 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print("Train loss:", score[0])
 print("Train accuracy:", score[1])
 
-file_to_save = "mnist_model.h5"
-print("Saving results in: ", file_to_save)
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
 model.save("mnist_model.h5")
