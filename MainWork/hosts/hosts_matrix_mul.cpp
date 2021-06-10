@@ -82,6 +82,10 @@ std::vector<float> make_matrix_mul(CLVars& cl_vars,
                                    const std::vector<std::vector<float>>& A,
                                    const std::vector<std::vector<float>>& B) {
 
+    if(A[0].size() != B.size()) {
+        throw std::runtime_error("Incorrect parameters of the kernel : dense");
+    }
+
     opencl_environment_definition(cl_vars, "kernels/kernel_matrix_mul.cl");
 
     int n = A.size(), m = B[0].size(), k = A[0].size(), ts = 15;

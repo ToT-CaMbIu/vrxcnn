@@ -159,21 +159,16 @@ public:
             return std::nullopt;
         }
 
-        std::vector<float> maps((z / skip_count) * x * y, 0.0f);
+        std::vector<T> maps((z / skip_count) * x * y, 0.0f);
 
         for(size_t i = 0; i < z; ++i) {
             size_t current_i = i / skip_count;
             for(size_t j = 0; j < x; ++j) {
                 for(size_t k = 0; k < y; ++k) {
                     maps[current_i * x * y + j * y + k] += (*(this->data))[i * x * y + j * y + k];
-                    if(current_i == 0 && j == 0 && k == 0) {
-                        std::cout << (*(this->data))[i * x * y + j * y + k] << std::endl;
-                    }
                 }
              }
         }
-
-        std::cout << maps[0] << std::endl;
 
         for(size_t i = 0; i < z; ++i) {
             size_t current_i = i / skip_count;

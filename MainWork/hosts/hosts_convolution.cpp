@@ -238,12 +238,12 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
     int n1 = filters.get_x(), m1 = filters.get_y();
     int ts = 15;
 
+    if(n <= 0 || m <= 0 || z <= 0 || n < n1 || m < m1 || count_of_weights % z != 0) {
+        throw std::runtime_error("Incorrect parameters of the kernel : convolution");
+    }
+
     std::cout << "convolution input" << std::endl;
     std::cout << "n: " << n << " m: " << m << " z: " << z << " weightsZ: " << count_of_weights << std::endl;
-
-    if(n <= 0 || m <= 0 || z <= 0 || n < n1 || m < m1 || count_of_weights % z != 0) {
-        throw "Incorrect parameters of the kernel";
-    }
 
     int weights_per_matrix = count_of_weights / z;
 
@@ -263,7 +263,7 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
     auto result_optional = result.tensor_collapse(z, bias, activation);
 
     if(!result_optional.has_value()) {
-        throw "Convolution error!";
+        throw std::runtime_error("Incorrect parameters of the kernel : convolution");
     }
 
     std::vector<float> A_copy(n * m);

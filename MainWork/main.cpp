@@ -17,7 +17,7 @@ int main (int argc, char **argv) {
     CLVars cl_vars_max_pool_3d;
     CLVars cl_vars_matrix_mul;
 
-    std::string input_file = "./bmp/train_885.bmp";
+    std::string input_file = "./bmp/train_893.bmp";
     int x, y;
     std::vector<float> input_image = read_image(input_file.data(), x, y);
 
