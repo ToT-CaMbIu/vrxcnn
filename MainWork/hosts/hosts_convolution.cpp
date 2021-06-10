@@ -286,7 +286,7 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
         std::cout << "-------------" << std::endl;
 #endif
         auto time_start = std::chrono::high_resolution_clock::now();
-        assert(test_convolution_valid(n, m, n1, m1, n2, m2, A_copy, Filter_copy, C_copy));
+        //assert(test_convolution_valid(n, m, n1, m1, n2, m2, A_copy, Filter_copy, C_copy));
         auto time_end = std::chrono::high_resolution_clock::now();
         elapsed += std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
     }

@@ -17,16 +17,9 @@ int main (int argc, char **argv) {
     CLVars cl_vars_max_pool_3d;
     CLVars cl_vars_matrix_mul;
 
-    //std::string input_file = "./bmp/train_86.bmp"; //7
-    //std::string input_file = "./bmp/train_841.bmp"; //7
-    //std::string input_file = "./bmp/train_47.bmp"; //2
-    std::string input_file = "./bmp/train_187.bmp"; //5
-    //std::string input_file = "./bmp/train_188.bmp"; //0
-    //std::string input_file = "./bmp/train_42.bmp"; //4
+    std::string input_file = "./bmp/train_885.bmp";
     int x, y;
     std::vector<float> input_image = read_image(input_file.data(), x, y);
-
-    //print_matrix(input_image, x, y);
 
     H5Helper<float> h5_helper;
 
@@ -37,7 +30,7 @@ int main (int argc, char **argv) {
     Tensor<float> tensor(x, y);
     tensor.add_kernel(input_image, x, y);
 
-    std::vector<size_t> dims = {3,3,1,64};
+    std::vector<size_t> dims = {3,3,1,32};
     auto convolution1_optional = h5_helper.h5_convolution_wrapper("../PythonNeuro/mnist_model.h5",
                                                                   "/model_weights//conv2d/conv2d/kernel:0",
                                                                   dims);
@@ -49,7 +42,7 @@ int main (int argc, char **argv) {
 
     Tensor<float> filters_conv1 = std::move(convolution1_optional.value());
 
-    dims = {64};
+    dims = {32};
     auto bias_conv1_optional = h5_helper.read_weights_from_file("../PythonNeuro/mnist_model.h5",
                                                                 "/model_weights//conv2d/conv2d/bias:0",
                                                                 dims);
@@ -64,7 +57,34 @@ int main (int argc, char **argv) {
     auto conv1 = make_convolution_3d(cl_vars_convolution_3d, tensor, filters_conv1, bias_conv1, ReLu);
     auto pool1 = make_max_pool_3d(cl_vars_max_pool_3d, conv1);
 
-    dims = {10816, 10};
+    dims = {3,3,32,64};
+    auto convolution2_optional = h5_helper.h5_convolution_wrapper("../PythonNeuro/mnist_model.h5",
+                                                                  "/model_weights/conv2d_1/conv2d_1/kernel:0",
+                                                                  dims);
+
+    if(!convolution2_optional.has_value()) {
+        std::cerr << "h5 read error!" << std::endl;
+        return -1;
+    }
+
+    Tensor<float> filters_conv2 = std::move(convolution2_optional.value());
+
+    dims = {64};
+    auto bias_conv2_optional = h5_helper.read_weights_from_file("../PythonNeuro/mnist_model.h5",
+                                                                "/model_weights/conv2d_1/conv2d_1/bias:0",
+                                                                dims);
+
+    if(!bias_conv2_optional.has_value())
+    {
+        std::cerr << "h5 read error!" << std::endl;
+        return -1;
+    }
+
+    std::vector<float> bias_conv2 = std::move(bias_conv2_optional.value());
+    auto conv2 = make_convolution_3d(cl_vars_convolution_3d, pool1, filters_conv2, bias_conv2, ReLu);
+    auto pool2 = make_max_pool_3d(cl_vars_max_pool_3d, conv2);
+
+    dims = {2304, 10};
     auto filters_dense_optional = h5_helper.h5_dense_wrapper("../PythonNeuro/mnist_model.h5",
                                                              "/model_weights/dense/dense/kernel:0",
                                                              dims);
@@ -88,7 +108,7 @@ int main (int argc, char **argv) {
 
     std::vector<std::vector<float>> tensor_flatten;
 
-    tensor_flatten.push_back(pool1.to_flatten());
+    tensor_flatten.push_back(pool2.to_flatten());
 
     std::vector<float> result = make_matrix_mul(cl_vars_matrix_mul, tensor_flatten,
                                                 filters_dense_optional.value());
@@ -114,6 +134,7 @@ int main (int argc, char **argv) {
     free(cl_vars_max_pool_3d.kernel_string);
     free(cl_vars_convolution_3d.kernel_string);
     free(cl_vars_matrix_mul.kernel_string);
+
 #endif
 
     return 0;

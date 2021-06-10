@@ -43,7 +43,7 @@ __kernel void matrix_convolutional_transformation(int nA, int mA,
             Filter_tile[localRow * ts + localCol] = Filter[globalZ * nF * mF + row * mF + (i * ts + localCol)];
         }
         else {
-            Filter_tile[localRow * ts + localCol] = 0.0;
+            Filter_tile[localRow * ts + localCol] = 0.0f;
         }
 
         if((i * ts + localRow) < nM && col < mM) {
@@ -51,7 +51,7 @@ __kernel void matrix_convolutional_transformation(int nA, int mA,
             A_tile[localRow * ts + localCol] = A[(globalZ / weights_per_matrix) * nA * mA + a_index];
         }
         else {
-            A_tile[localRow * ts + localCol] = 0.0;
+            A_tile[localRow * ts + localCol] = 0.0f;
         }
 
         barrier(CLK_LOCAL_MEM_FENCE);

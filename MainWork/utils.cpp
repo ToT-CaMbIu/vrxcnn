@@ -242,9 +242,8 @@ bool float_compare(float lhs,
 void softmax(std::vector<float>& input) {
     int size = input.size();
     int i;
-    float m, sum, constant;
+    float m = -1e9, sum;
 
-    m = -INFINITY;
     for (i = 0; i < size; ++i) {
         if (m < input[i]) {
             m = input[i];
@@ -256,7 +255,7 @@ void softmax(std::vector<float>& input) {
         sum += exp(input[i] - m);
     }
 
-    constant = m + log(sum);
+    float constant = m + log(sum);
     for (i = 0; i < size; ++i) {
         input[i] = exp(input[i] - constant);
     }
