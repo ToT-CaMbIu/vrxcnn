@@ -28,10 +28,10 @@ model = keras.Sequential(
 
 model.summary()
 
-batch_size = 128
-epochs = 10
+batch_size = 64
+epochs = 15
 
-model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+model.compile(loss="categorical_crossentropy", metrics=["accuracy"])
 
 model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
 
