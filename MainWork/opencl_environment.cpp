@@ -26,26 +26,30 @@ void cl_clean(CLVars& cl_vars) {
 
 void opencl_environment_definition_vortex(CLVars& cl_vars,
                                           const char* binary_source) {
-    /*uint8_t *kernel_bin = nullptr;
+    cl_platform_id platform;
+    uint8_t *kernel_bin = nullptr;
     size_t kernel_size;
 
     if (read_kernel_binary(binary_source, &kernel_bin, &kernel_size) == false) {
         return;
     }
 
-    CL_CHECK(clGetPlatformIDs(1, &cl_vars.platform, nullptr));
-    CL_CHECK(clGetDeviceIDs(cl_vars.platform, CL_DEVICE_TYPE_DEFAULT, 1, &cl_vars.device, nullptr));
-    cl_vars.context = CL_CHECK2(clCreateContext(NULL, 1, &cl_vars.device, nullptr, nullptr, &cl_vars.clStatus));
+    CL_CHECK(clGetPlatformIDs(1, &platform, nullptr));
+    CL_CHECK(clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &cl_vars.device, nullptr));
 
+    std::cout << "Creating context..." << std::endl;
+    cl_vars.context = CL_CHECK2(clCreateContext(nullptr, 1, &cl_vars.device, nullptr,
+                                                nullptr, &_err));
     cl_vars.program = CL_CHECK2(clCreateProgramWithBinary(cl_vars.context, 1, &cl_vars.device, &kernel_size,
-                                                          (const uint8_t**)&kernel_bin, &cl_vars.clStatus, nullptr));
+                                                          (const uint8_t**)&kernel_bin, &cl_vars.clStatus, &_err));
     if (cl_vars.program == nullptr) {
         std::cout << "Binary file load failed!" << std::endl;
         cl_clean(cl_vars);
         return;
     }
     CL_CHECK(clBuildProgram(cl_vars.program, 1, &cl_vars.device, nullptr, nullptr, nullptr));
-    cl_vars.command_queue = CL_CHECK2(clCreateCommandQueue(cl_vars.context, cl_vars.device, 0, &cl_vars.clStatus));*/
+    cl_vars.command_queue = CL_CHECK2(clCreateCommandQueue(cl_vars.context,
+                                                           cl_vars.device, 0, &_err));
 }
 
 void opencl_environment_definition(CLVars& cl_vars,

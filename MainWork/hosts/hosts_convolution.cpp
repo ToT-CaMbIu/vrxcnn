@@ -278,15 +278,8 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
         std::copy(Filter.begin() + k * n1 * m1, Filter.begin() + (k + 1) * n1 * m1,
                   Filter_copy.begin());
         std::copy(C.begin() + k * n2 * m2, C.begin() + (k + 1) * n2 * m2, C_copy.begin());
-
-#ifndef h5_debug
-        print_matrix(A_copy, n, m);
-        print_matrix(Filter_copy, n1, m1);
-        print_matrix(C_copy, n2, m2);
-        std::cout << "-------------" << std::endl;
-#endif
         auto time_start = std::chrono::high_resolution_clock::now();
-        //assert(test_convolution_valid(n, m, n1, m1, n2, m2, A_copy, Filter_copy, C_copy));
+        assert(test_convolution_valid(n, m, n1, m1, n2, m2, A_copy, Filter_copy, C_copy));
         auto time_end = std::chrono::high_resolution_clock::now();
         elapsed += std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
     }

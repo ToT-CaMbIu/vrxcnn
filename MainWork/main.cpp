@@ -10,14 +10,14 @@
 #endif
 
 int main (int argc, char **argv) {
-    
+
 #ifdef h5_debug
 
     CLVars cl_vars_convolution_3d;
     CLVars cl_vars_max_pool_3d;
     CLVars cl_vars_matrix_mul;
 
-    std::string input_file = "./bmp/train_893.bmp";
+    std::string input_file = "./bmp/train_932.bmp";
     int x, y;
     std::vector<float> input_image = read_image(input_file.data(), x, y);
 
@@ -134,6 +134,42 @@ int main (int argc, char **argv) {
     free(cl_vars_max_pool_3d.kernel_string);
     free(cl_vars_convolution_3d.kernel_string);
     free(cl_vars_matrix_mul.kernel_string);
+
+#else
+
+    CLVars cl_vars_convolution_3d;
+    CLVars cl_vars_max_pool_3d;
+    CLVars cl_vars_matrix_mul;
+
+    std::string input_file = "./bmp/train_932.bmp";
+    int x, y;
+    std::vector<float> input_image = read_image(input_file.data(), x, y);
+    Tensor<float> tensor(x, y);
+    tensor.add_kernel(input_image, x, y);
+
+    auto ReLu = [](float val) -> float{
+        return fmax(val, 0.0f);
+    };
+
+    size_t sz_conv = 3 * 3 * 32;
+    size_t sz_bias = 32;
+
+    std::vector<float> a(sz_conv);
+    std::vector<float> b(sz_bias);
+
+    for(auto& val : a) {
+        val = 0.845 * (rand() % 10);
+    }
+
+    for(auto& val : b) {
+        val = 0.845 * (rand() % 10);
+    }
+
+    Tensor filters_conv(32, 3, 3, a);
+
+    auto conv1 = make_convolution_3d(cl_vars_convolution_3d, tensor, filters_conv, b, ReLu);
+    auto pool1 = make_max_pool_3d(cl_vars_max_pool_3d, conv1);
+
 
 #endif
 

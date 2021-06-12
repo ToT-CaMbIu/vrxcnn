@@ -1,5 +1,7 @@
 #pragma once
 
+#define CL_TARGET_OPENCL_VERSION 120
+
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -13,6 +15,7 @@
 #include <unistd.h>
 #include <string>
 #include <chrono>
+#include <functional>
 
 //cpp
 #include <vector>

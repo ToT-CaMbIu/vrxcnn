@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <chrono>
 
 std::vector<float> read_image(const char *filename,
                   int& widthOut,

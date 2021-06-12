@@ -22,7 +22,7 @@ h5: $(SRCS)
 	g++ $(h5_part) $(flags) $^ h5_helper.cpp -o $(exe_name) -framework OpenCL
 
 clean:
-	rm -rf $(exe_name) *.o .depend
+	rm -rf *.o .depend
 
 clean-all: clean
 	rm -rf *.pocl *.dump
@@ -48,18 +48,26 @@ CXXFLAGS += -I$(POCL_RT_PATH)/include -I.
 
 LDFLAGS += -L$(POCL_RT_PATH)/lib -L$(VORTEX_DRV_PATH)/simx -lOpenCL -lvortex
 
-KERNEL_NAME += kernel_matrix_mul
+KERNEL_MATRIX_MUL += kernel_matrix_mul
+KERNEL_CONV += kernel_conv_3d
+KERNEL_MAX_POOL += kernel_max_pool_3d
 
-PROJECT = matrix_mul_test
+PROJECT = NEURO_MODEL
 
-vortex: $(PROJECT) $(KERNEL_NAME).pocl
+vortex: $(PROJECT) $(KERNEL_MATRIX_MUL).pocl $(KERNEL_CONV).pocl $(KERNEL_MAX_POOL).pocl
 
-$(KERNEL_NAME).pocl: $(KERNEL_NAME).cl
-	LLVM_PREFIX=$(LLVM_PREFIX) POCL_DEBUG=all LD_LIBRARY_PATH=$(LLVM_PREFIX)/lib:$(POCL_CC_PATH)/lib $(POCL_CC_PATH)/bin/poclcc -LLCFLAGS $(K_LLCFLAGS) -CFLAGS $(K_CFLAGS) -LDFLAGS $(K_LDFLAGS) -o $(KERNEL_NAME).pocl $(KERNEL_NAME).cl
+$(KERNEL_MATRIX_MUL).pocl: ./kernels/$(KERNEL_MATRIX_MUL).cl
+	LLVM_PREFIX=$(LLVM_PREFIX) POCL_DEBUG=all LD_LIBRARY_PATH=$(LLVM_PREFIX)/lib:$(POCL_CC_PATH)/lib $(POCL_CC_PATH)/bin/poclcc -LLCFLAGS $(K_LLCFLAGS) -CFLAGS $(K_CFLAGS) -LDFLAGS $(K_LDFLAGS) -o ./kernels/$(KERNEL_MATRIX_MUL).pocl ./kernels/$(KERNEL_MATRIX_MUL).cl
+
+$(KERNEL_CONV).pocl: ./kernels/$(KERNEL_CONV).cl
+	LLVM_PREFIX=$(LLVM_PREFIX) POCL_DEBUG=all LD_LIBRARY_PATH=$(LLVM_PREFIX)/lib:$(POCL_CC_PATH)/lib $(POCL_CC_PATH)/bin/poclcc -LLCFLAGS $(K_LLCFLAGS) -CFLAGS $(K_CFLAGS) -LDFLAGS $(K_LDFLAGS) -o ./kernels/$(KERNEL_CONV).pocl ./kernels/$(KERNEL_CONV).cl
+
+$(KERNEL_MAX_POOL).pocl: ./kernels/$(KERNEL_MAX_POOL).cl
+	LLVM_PREFIX=$(LLVM_PREFIX) POCL_DEBUG=all LD_LIBRARY_PATH=$(LLVM_PREFIX)/lib:$(POCL_CC_PATH)/lib $(POCL_CC_PATH)/bin/poclcc -LLCFLAGS $(K_LLCFLAGS) -CFLAGS $(K_CFLAGS) -LDFLAGS $(K_LDFLAGS) -o ./kernels/$(KERNEL_MAX_POOL).pocl ./kernels/$(KERNEL_MAX_POOL).cl
 
 $(PROJECT): $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
-run-simx: $(PROJECT) $(KERNEL_NAME).pocl
+run-simx: $(PROJECT) $(KERNEL_MATRIX_MUL).pocl $(KERNEL_CONV).pocl $(KERNEL_MAX_POOL).pocl
 	LD_LIBRARY_PATH=$(POCL_RT_PATH)/lib:$(VORTEX_DRV_PATH)/simx:$(LD_LIBRARY_PATH) ./$(PROJECT)
 

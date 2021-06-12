@@ -38,7 +38,6 @@ struct CLVars {
     char *kernel_string = nullptr;
 
     //vortex
-    cl_platform_id platform = nullptr;
     cl_device_id device = nullptr;
 };
 //

@@ -21,6 +21,7 @@ __kernel void matrix_max_pool_transformation_3d(int z,
     const int my = m >> 1;
 
     __local float val[4];
+    __local float mx;
 
     for(int i = 0; globalZ + i * thread_skip < z; ++i) {
         int current_z = globalZ + i * thread_skip;
@@ -33,7 +34,6 @@ __kernel void matrix_max_pool_transformation_3d(int z,
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        __local float mx;
         mx = val[0];
 
         for (int i = 1; i < 4; ++i) {
