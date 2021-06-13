@@ -1,6 +1,6 @@
 # ML models framework with Vortex compability
 
-Framework for execution on Vortex ML models. Only CNN is supported now.
+Framework for execution on Vortex ML models. CNN layers is supported now.
 
 Directory structure
 -------------------
