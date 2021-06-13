@@ -58,9 +58,12 @@ void opencl_create_program_max_pool(CLVars& cl_vars,
     clReleaseMemObject(C_cl);
 }
 
-std::vector<float> make_max_pool(CLVars& cl_vars) {
+std::vector<float> make_max_pool(CLVars& cl_vars,
+                                 bool standard_definition) {
 
-    opencl_environment_definition(cl_vars, "kernels/kernel_max_pool.cl");
+    if(standard_definition) {
+        opencl_environment_definition(cl_vars, "kernels/kernel_max_pool.cl");
+    }
 
     int n = rand() % 1000 + 3, m = rand() % 1122 + 3;
 
@@ -154,9 +157,12 @@ void opencl_create_program_max_pool_3d(CLVars& cl_vars,
 }
 
 Tensor<float> make_max_pool_3d(CLVars& cl_vars,
-                               const Tensor<float>& tensor) {
+                               const Tensor<float>& tensor,
+                               bool standard_definition) {
 
-    opencl_environment_definition(cl_vars, "kernels/kernel_max_pool_3d.cl");
+    if(standard_definition) {
+        opencl_environment_definition(cl_vars, "kernels/kernel_max_pool_3d.cl");
+    }
 
     int n = tensor.get_x(), m = tensor.get_y(), z = tensor.get_z();
 

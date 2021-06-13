@@ -22,7 +22,7 @@ h5: $(SRCS)
 	g++ $(h5_part) $(flags) $^ h5_helper.cpp -o $(exe_name) -framework OpenCL
 
 clean:
-	rm -rf *.o .depend
+	rm -rf $(exe_name) *.o .depend
 
 clean-all: clean
 	rm -rf *.pocl *.dump

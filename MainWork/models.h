@@ -5,7 +5,7 @@
 template<typename T>
 class Tensor
 {
-private:
+protected:
     using Tensor_type = std::vector<std::vector<std::vector<T>>>;
     using Image_type = std::vector<std::vector<T>>;
 

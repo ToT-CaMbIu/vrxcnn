@@ -15,4 +15,5 @@ void opencl_create_program_matrix_mul(CLVars& cl_vars,
 
 std::vector<float> make_matrix_mul(CLVars& cl_vars,
                                    const std::vector<std::vector<float>>& A,
-                                   const std::vector<std::vector<float>>& B);
+                                   const std::vector<std::vector<float>>& B,
+                                   bool standard_definition = true);

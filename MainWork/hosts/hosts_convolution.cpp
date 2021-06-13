@@ -87,9 +87,12 @@ void opencl_create_program_conv(CLVars& cl_vars,
     clReleaseMemObject(C_cl);
 }
 
-std::vector<float> make_convolution(CLVars& cl_vars) {
+std::vector<float> make_convolution(CLVars& cl_vars,
+                                    bool standard_definition) {
 
-    opencl_environment_definition(cl_vars, "kernels/kernel_conv.cl");
+    if(standard_definition) {
+        opencl_environment_definition(cl_vars, "kernels/kernel_conv.cl");
+    }
 
     //input parameters
     int n = rand() % 5000 + 1000, m = rand() % 5000 + 1000;
@@ -229,9 +232,12 @@ Tensor<float> make_convolution_3d(CLVars& cl_vars,
                                   const Tensor<float>& tensor,
                                   const Tensor<float>& filters,
                                   const std::vector<float>& bias,
-                                  std::function<float(float num)> activation) {
+                                  std::function<float(float num)> activation,
+                                  bool standard_definition) {
 
-    opencl_environment_definition(cl_vars, "kernels/kernel_conv_3d.cl");
+    if(standard_definition) {
+        opencl_environment_definition(cl_vars, "kernels/kernel_conv_3d.cl");
+    }
 
     int n = tensor.get_x(), m = tensor.get_y(), z = tensor.get_z(),
         count_of_weights = filters.get_z();
