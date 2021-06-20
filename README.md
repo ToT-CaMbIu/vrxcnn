@@ -1,4 +1,4 @@
-# ML models framework with Vortex compability
+# ML models framework with Vortex compatibility
 
 Framework for execution on Vortex ML models. CNN layers is supported now.
 
